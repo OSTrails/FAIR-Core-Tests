@@ -16,7 +16,7 @@ class FAIRTest
       responsible_developer: 'Mark D Wilkinson',
       email: 'mark.wilkinson@upm.es',
       response_description: 'The response is "pass", "fail" or "indeterminate"',
-      schemas: { 'subject' => ['string', 'the GUID being tested'] },
+      schemas: { 'resource_identifier' => ['string', 'the GUID being tested'] },
       organizations: [{ 'name' => 'OSTrails Project', 'url' => 'https://ostrails.eu/' }],
       individuals: [{ 'name' => 'Mark D Wilkinson', 'email' => 'mark.wilkinson@upm.es' }],
       creator: 'https://orcid.org/0000-0001-6960-357X',
@@ -27,16 +27,16 @@ class FAIRTest
   end
 
   def self.fc_metadata_identifier_in_metadata(guid:)
-    FAIRChampion::Output.clear_comments
+    FtrRuby::Output.clear_comments
 
-    output = FAIRChampion::Output.new(
+    output = FtrRuby::Output.new(
       testedGUID: guid,
       meta: fc_metadata_identifier_in_metadata_meta
     )
 
     output.comments << "INFO: TEST VERSION '#{fc_metadata_identifier_in_metadata_meta[:testversion]}'\n"
 
-    metadata = FAIRChampion::Harvester.resolveit(guid) # this is where the magic happens!
+    metadata = FAIRChampionHarvester::Core.resolveit(guid) # this is where the magic happens!
 
     metadata.comments.each do |c|
       output.comments << c
@@ -57,9 +57,9 @@ class FAIRTest
     #############################################################################################################
 
     if graph.size > 0
-      output.comments << "INFO: Linked Data Found.  Now searching for the metadata identifier using appropriate linked data predicates (#{FAIRChampion::Utils::SELF_IDENTIFIER_PREDICATES}).\n"
+      output.comments << "INFO: Linked Data Found.  Now searching for the metadata identifier using appropriate linked data predicates (#{FAIRChampionHarvester::Utils::SELF_IDENTIFIER_PREDICATES}).\n"
 
-      foundID = FAIRChampion::CommonQueries::GetSelfIdentifier(metadata.graph, output)
+      foundID = FAIRChampionHarvester::CommonQueries::GetSelfIdentifier(metadata.graph, output)
 
       # query pattern-match in an object position
       unless foundID.first
@@ -69,12 +69,12 @@ class FAIRTest
       end
       if foundID.first.empty?
         output.score = 'fail'
-        output.comments << "FAILURE: No metadata identifiers were found in the metadata record using predicates #{FAIRChampion::Utils::SELF_IDENTIFIER_PREDICATES}. \n"
+        output.comments << "FAILURE: No metadata identifiers were found in the metadata record using predicates #{FAIRChampionHarvester::Utils::SELF_IDENTIFIER_PREDICATES}. \n"
         return output.createEvaluationResponse  # release the result from all other tests
       end
       unless foundID.first =~ /\w/
         output.score = 'fail'
-        output.comments << "FAILURE: No metadata identifiers were found in the metadata record using predicates #{FAIRChampion::Utils::SELF_IDENTIFIER_PREDICATES}. \n"
+        output.comments << "FAILURE: No metadata identifiers were found in the metadata record using predicates #{FAIRChampionHarvester::Utils::SELF_IDENTIFIER_PREDICATES}. \n"
         return output.createEvaluationResponse  # release the result from all other tests
       end
 
@@ -96,12 +96,12 @@ class FAIRTest
   end
 
   def self.fc_metadata_identifier_in_metadata_api
-    api = OpenAPI.new(meta: fc_metadata_identifier_in_metadata_meta)
+    api = FtrRuby::OpenAPI.new(meta: fc_metadata_identifier_in_metadata_meta)
     api.get_api
   end
 
   def self.fc_metadata_identifier_in_metadata_about
-    dcat = ChampionDCAT::DCAT_Record.new(meta: fc_metadata_identifier_in_metadata_meta)
+    dcat = FtrRuby::DCAT_Record.new(meta: fc_metadata_identifier_in_metadata_meta)
     dcat.get_dcat
   end
 end
