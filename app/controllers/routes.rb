@@ -21,6 +21,18 @@ def set_routes(classes: [])
   get %r{/#{basepath}/?} do
     ts = Dir["#{File.dirname(__FILE__)}/../tests/*.rb"]
     @tests = ts.map { |t| t.match(%r{.*/(\S+)\.rb$})[1] } # This is just the final field in the URL
+    request.accept.each do |type|
+      warn "accept #{type}"
+      case type.to_s
+      when 'application/json'
+        content_type :json
+        halt @tests.to_json
+      when 'application/ld+json'
+        content_type 'application/ld+json'
+        halt @tests.to_json
+      end
+    end
+
     # def initialize(test_host:, basepath:, test_protocol:)
     infra = FtrRuby::TestInfra.new(test_host: test_host, basepath: basepath, test_protocol: test_protocol)
     @basepath = basepath

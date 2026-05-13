@@ -87,7 +87,8 @@ class FAIRTest
 
     if graph.size > 0 # have we found anything yet?
       output.comments << "INFO: Searching Linked Data metadata for predicates indicating a pointer to data.\n"
-      identifier = FAIRChampionHarvester::CommonQueries::GetSelfIdentifier(graph: graph)
+      identifier = FAIRChampionHarvester::CommonQueries::GetSelfIdentifier(graph)
+      identifier = identifier.first
     end
 
     if identifier =~ /\w+/

@@ -77,7 +77,7 @@ class FAIRTest
       output.comments << "INFO: found title #{title}.  Searching Bing\n"
       warn "Calling Bing with title #{title}\n\n"
 
-      searchresults = callBing(title)
+      searchresults = callBing(title, output)
       h = JSON.parse(searchresults)
       if h['webPages']
         output.comments << "INFO: found matches in Bing.  Checking for results that match any of #{finalURI.map do |b|
@@ -120,7 +120,7 @@ class FAIRTest
       output.comments << "INFO: found keywords #{keywords}.  Now searching Bing.\n"
       warn "Calling Bing with hash keywords #{keywords}\n\n"
 
-      searchresults = callBing(keywords)
+      searchresults = callBing(keywords, output)
       h = JSON.parse(searchresults)
       if h['webPages']
         output.comments << "INFO: found matches in Bing.  Checking for results that match any of #{finalURI.map do |b|
@@ -165,7 +165,7 @@ class FAIRTest
           output.comments << "INFO: Calling Bing search using #{title}.\n "
           warn "Calling Bing with graph title #{title}\n\n"
 
-          searchresults = callBing(title) # search bing
+          searchresults = callBing(title, output) # search bing
           # warn JSON::pretty_generate(JSON(searchresults))
           h = JSON.parse(searchresults) # parse json
           if h['webPages'] # are there results
@@ -202,7 +202,7 @@ class FAIRTest
           output.comments << "INFO: Calling Bing search using #{title}.\n "
           warn "Calling Bing with graph name #{title}\n\n"
 
-          searchresults = callBing(title) # search bing
+          searchresults = callBing(title, output) # search bing
           # warn JSON::pretty_generate(JSON(searchresults))
           h = JSON.parse(searchresults) # parse json
           if h['webPages'] # are there results
@@ -246,7 +246,7 @@ class FAIRTest
           output.comments << "INFO: Calling Bing search using #{keywords}.\n "
           warn "Calling Bing with graph keywords #{keywords}\n\n"
 
-          searchresults = callBing(keywords) # search bing
+          searchresults = callBing(keywords, output) # search bing
           # warn "keywords #{keywords}"
           # warn "results: #{searchresults}"
           h = {}
@@ -285,7 +285,7 @@ class FAIRTest
     output.createEvaluationResponse
   end
 
-  def self.callBing(phrase)
+  def self.callBing(phrase, output)
     warn "Calling Bing with phrase #{phrase}\n\n"
     phrase = phrase.dup if phrase.frozen?
     phrase.gsub!(%r{https?://[^,]+}, '') # need to eliminate URLs that appear as keywords

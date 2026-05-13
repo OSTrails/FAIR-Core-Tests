@@ -47,7 +47,7 @@ class FAIRTest
       meta: test_FM_F4_M_MetaIndexed_meta
     )
 
-    output.comments << "INFO: TEST VERSION '#{test_FM_F4_M_MetaIndexed[:testversion]}'\n"
+    output.comments << "INFO: TEST VERSION '#{test_FM_F4_M_MetaIndexed_meta[:testversion]}'\n"
 
     metadata = FAIRChampionHarvester::Core.resolveit(guid) # this is where the magic happens!
 
@@ -110,7 +110,6 @@ ORDER BY ?subject ?titleProperty")
 
     output.comments << "INFO: testing any hash-style metadata for a key matching 'title' in any case.\n"
     flatlist = hash.flatten(40) # hopefully no hash is more than 40 deep!
-    title = ''
     for x in 1..flatlist.length
       term = flatlist[x - 1]
       next unless term.is_a? String
@@ -128,7 +127,7 @@ ORDER BY ?subject ?titleProperty")
       output.comments << "INFO: found title #{title}.  Searching Bing\n"
       warn "Calling Bing with title #{title}\n\n"
 
-      searchresults = callBing(title)
+      searchresults = callBing2(title, output)
       h = JSON.parse(searchresults)
       if h['webPages']
         output.comments << "INFO: found matches in Bing.  Checking for results that match any of #{finalURI.map do |b|
@@ -218,7 +217,8 @@ ORDER BY ?subject ?keywordProperty")
         keywords << flatlist[x] # the next thing should be the keywords
       end
     end
-    # keywords = keywords.gsub!("\,", "")
+
+    keywords = keywords.join(' ').gsub(',', '')
     unless keywords =~ /\w+/
       output.comments << "WARN: could not find any human-readeable keywords in hash-style metadata.\n"
     end
@@ -227,7 +227,7 @@ ORDER BY ?subject ?keywordProperty")
       output.comments << "INFO: found keywords #{keywords}.  Now searching Bing.\n"
       warn "Calling Bing with keywords #{keywords}\n\n"
 
-      searchresults = callBing(keywords.join(' ')) # search bing
+      searchresults = callBing2(keywords, output) # search bing
       h = JSON.parse(searchresults)
       if h['webPages']
         output.comments << "INFO: found matches in Bing.  Checking for results that match any of #{finalURI.map do |b|
@@ -257,7 +257,7 @@ ORDER BY ?subject ?keywordProperty")
     output.createEvaluationResponse
   end
 
-  def self.callBing(phrase)
+  def self.callBing2(phrase, output)
     warn "Calling Bing with phrase #{phrase}\n\n"
     phrase = phrase.dup if phrase.frozen?
     phrase.gsub!(%r{https?://[^,]+}, '') # need to eliminate URLs that appear as keywords

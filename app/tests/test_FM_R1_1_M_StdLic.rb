@@ -60,7 +60,7 @@ class FAIRTest
     #############################################################################################################
 
     output.score = 'fail'
-    if mproperties.size > 1
+    if properties.size > 1
       output.comments << "INFO:  searching hash-style metadata for a match with /license/ in any case.\n"
 
       properties.each do |keyval|
