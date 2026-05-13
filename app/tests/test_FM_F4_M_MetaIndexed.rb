@@ -4,7 +4,20 @@ class FAIRTest
       testversion: HARVESTER_VERSION + ':' + 'Tst-3.0.0',
       testname: 'OSTrails Core: Searchable in major search engine',
       testid: 'test_FM_F4_M_MetaIndexed',
-      description: 'Tests whether a machine is able to discover the resource by search, using Microsoft Bing.',
+      description: "Tests whether a machine is able to discover the
+      resource by search, using Microsoft Bing.  The process is to first
+      identify the title of the resource in the metadata, then search for
+      that title in Bing, and then check whether any of the results from
+      Bing include a reference to the resource.  This test is designed to
+      check whether the metadata is indexed in a major search engine, which
+      is an important aspect of findability.  The test will also check for
+      keywords in the metadata and use those as search terms as well.  The properties
+      used to identify titles in linked data are dc:title, dcterms:title,
+      dcterms:alternative, schema:name, schema:headline, schema:alternateName,
+      schemah:name, schemah:headline, schemah:alternateName, rdfs:label,
+      skos:prefLabel, skos:altLabel, foaf:name and bibo:title.
+      The properties used to identify
+      keywords in linked data are any property containing 'keyword' in the name.",
       metric: 'https://w3id.org/fair-metrics/general/FM_F4_M_MetaIndexed',
       indicators: 'https://doi.org/10.25504/FAIRsharing.0c0d21',
       type: 'http://edamontology.org/operation_2428',
@@ -49,13 +62,52 @@ class FAIRTest
     end
 
     hash = metadata.hash
-    # graph = metadata.graph
+    graph = metadata.graph
     # properties = FAIRChampionHarvester::Core.deep_dive_properties(hash)
     # #############################################################################################################
     #############################################################################################################
     #############################################################################################################
     #############################################################################################################
     ###################  TITLE
+    output.comments << "INFO: testing any linked data metadata for a key matching 'title' in any case.\n"
+
+    titlequery = SPARQL.parse("
+PREFIX dc:      <http://purl.org/dc/elements/1.1/>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX schema:  <https://schema.org/>
+PREFIX schemah: <http://schema.org/>
+PREFIX rdfs:    <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos:    <http://www.w3.org/2004/02/skos/core#>
+PREFIX foaf:    <http://xmlns.com/foaf/0.1/>
+PREFIX bibo:    <http://purl.org/ontology/bibo/>
+
+SELECT DISTINCT ?subject ?titleProperty ?title WHERE {
+  VALUES ?titleProperty {
+    dc:title
+    dcterms:title
+    dcterms:alternative
+    schema:name
+    schema:headline
+    schema:alternateName
+    schemah:name
+    schemah:headline
+    schemah:alternateName
+    rdfs:label
+    skos:prefLabel
+    skos:altLabel
+    foaf:name
+    bibo:title
+  }
+  ?subject ?titleProperty ?title .
+  FILTER ( isLiteral(?title) )
+}
+ORDER BY ?subject ?titleProperty")
+
+    titles = []
+    graph.query(titlequery).each do |solution|
+      titles << solution[:title].to_s
+    end
+
     output.comments << "INFO: testing any hash-style metadata for a key matching 'title' in any case.\n"
     flatlist = hash.flatten(40) # hopefully no hash is more than 40 deep!
     title = ''
@@ -65,15 +117,14 @@ class FAIRTest
 
       # warn term
       if term.match(/title$/i) # in a flattened hash, find something matching 'title' at the end of the term
-        title = flatlist[x] # the next thing should be the title
-        break
+        titles << flatlist[x] # the next thing should be the title
       end
     end
-    unless title =~ /\w+/
+    unless titles.first
       output.comments << "WARN: could not find a structured reference to the title in the hash-style metadata.\n"
     end
 
-    if title =~ /\w+/
+    titles.each do |title|
       output.comments << "INFO: found title #{title}.  Searching Bing\n"
       warn "Calling Bing with title #{title}\n\n"
 
@@ -99,16 +150,72 @@ class FAIRTest
     end
 
     #############  Keywords
+
+    keywordquery = SPARQL.parse("
+    PREFIX dc:      <http://purl.org/dc/elements/1.1/>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX dcat:    <http://www.w3.org/ns/dcat#>
+PREFIX schema:  <https://schema.org/>
+PREFIX schemah: <http://schema.org/>
+PREFIX foaf:    <http://xmlns.com/foaf/0.1/>
+PREFIX prism:   <http://prismstandard.org/namespaces/basic/2.0/>
+PREFIX skos:    <http://www.w3.org/2004/02/skos/core#>
+PREFIX rdfs:    <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT DISTINCT ?subject ?keywordProperty ?keyword WHERE {
+
+  VALUES ?keywordProperty {
+    dc:subject
+    dcterms:subject
+    dcat:keyword
+    dcat:theme
+    schema:keywords
+    schema:about
+    schema:genre
+    schemah:keywords
+    schemah:about
+    schemah:genre
+    foaf:topic
+    prism:keyword
+  }
+
+  # Case 1: property value is already a plain string
+  {
+    ?subject ?keywordProperty ?keyword .
+    FILTER ( isLiteral(?keyword) )
+  }
+  UNION
+  # Case 2: property value is a URI — follow it to get a human-readable label
+  {
+    ?subject ?keywordProperty ?concept .
+    FILTER ( isIRI(?concept) )
+    VALUES ?labelProp {
+      skos:prefLabel
+      skos:altLabel
+      rdfs:label
+      schema:name
+      schemah:name
+    }
+    ?concept ?labelProp ?keyword .
+    FILTER ( isLiteral(?keyword) )
+  }
+
+}
+ORDER BY ?subject ?keywordProperty")
+
+    keywords = []
+    graph.query(keywordquery).each do |solution|
+      keywords << solution[:keyword].to_s
+    end
+
     flatlist = hash.flatten(40) # hopefully no hash is more than 40 deep!
-    keywords = ''
     for x in 1..flatlist.length
       term = flatlist[x - 1]
       # warn term
       next unless term.is_a? String
 
       if term.match(/keywords?$/i) # in a flattened hash, find something matching 'keywords?' at the end of the term
-        keywords = flatlist[x] # the next thing should be the keywords
-        break
+        keywords << flatlist[x] # the next thing should be the keywords
       end
     end
     # keywords = keywords.gsub!("\,", "")
@@ -118,9 +225,9 @@ class FAIRTest
 
     if keywords =~ /\w+/
       output.comments << "INFO: found keywords #{keywords}.  Now searching Bing.\n"
-      warn "Calling Bing with hash keywords #{keywords}\n\n"
+      warn "Calling Bing with keywords #{keywords}\n\n"
 
-      searchresults = callBing(keywords)
+      searchresults = callBing(keywords.join(' ')) # search bing
       h = JSON.parse(searchresults)
       if h['webPages']
         output.comments << "INFO: found matches in Bing.  Checking for results that match any of #{finalURI.map do |b|
@@ -140,141 +247,6 @@ class FAIRTest
         end
       else
         output.comments << "INFO: Bing returned no search results for keywords #{keywords}.\n"
-      end
-    end
-
-    #####################  now with the graph data
-
-    g = metadata.graph
-
-    if g.size > 0 # have we found anything
-      output.comments << "INFO: Testing Linked Data-formatted metadata for any predicate that contains 'title' in any case.\n "
-      query = SPARQL.parse("select distinct ?o where {?s ?p ?o  FILTER(CONTAINS(lcase(str(?p)), 'title'))}") # find predicate containing "title", take object
-      results = query.execute(g)
-      if results.any?
-        output.comments << "INFO: found title predicate.\n "
-        seen = Hash.new(false)  # appaerntly, distinct isn't working in the sparql...??
-        results.each do |res|
-          next if seen[res[:o].to_s]
-
-          seen[res[:o].to_s] = true
-
-          title = res[:o].to_s  # get the title
-          output.comments << "INFO: found possible Title:  #{title}.\n "
-          # warn "looking for #{title}"
-          output.comments << "INFO: Calling Bing search using #{title}.\n "
-          warn "Calling Bing with graph title #{title}\n\n"
-
-          searchresults = callBing(title) # search bing
-          # warn JSON::pretty_generate(JSON(searchresults))
-          h = JSON.parse(searchresults) # parse json
-          if h['webPages'] # are there results
-            output.comments << "INFO: Bing found results for#{title}.  Checking for results that match #{finalURI.map do |b|
-              b.to_s
-            end}.\n"
-            finalURI = finalURI.map { |b| b.downcase } # make case insensitive search
-            h['webPages']['value'].each do |p| # for each matching pge do
-              if finalURI.include?(p['url'].downcase) # compare to the final URI from the Utils::fetch routine (the page of metadata)
-                output.comments << "SUCCESS: found a search record referencing #{p['url']} based on an exact-match title search against Bing.\n  "
-                output.score = 'pass'
-              end
-            end
-            unless output.score == 'pass'
-              output.comments << "INFO: No results from Bing included any of #{finalURI.map { |b| b.to_s }}.\n"
-            end
-          else
-            output.comments << "INFO: No search results from Bing using the title of the record\n  "
-          end
-        end
-      end
-      query = SPARQL.parse("select distinct ?o where {?s ?p ?o  FILTER(CONTAINS(lcase(str(?p)), 'name'))}") # find predicate containing "name", take object
-      results = query.execute(g)
-      if results.any?
-        output.comments << "INFO: found a 'name' predicate; presuming this is a pointer to a title.\n "
-        seen = Hash.new(false)  # appaerntly, distinct isn't working in the sparql...??
-        results.each do |res|
-          next if seen[res[:o].to_s]
-
-          seen[res[:o].to_s] = true
-          title = res[:o].to_s  # get the title
-          output.comments << "INFO: found possible Title:  #{title}.\n "
-          # warn "looking for #{title}"
-          output.comments << "INFO: Calling Bing search using #{title}.\n "
-          warn "Calling Bing with graph name #{title}\n\n"
-
-          searchresults = callBing(title) # search bing
-          # warn JSON::pretty_generate(JSON(searchresults))
-          h = JSON.parse(searchresults) # parse json
-          if h['webPages'] # are there results
-            output.comments << "INFO: Bing found results for#{title}.  Checking for results that match #{finalURI.map do |b|
-              b.to_s
-            end}.\n"
-            finalURI = finalURI.map { |b| b.downcase } # make case insensitive search
-            h['webPages']['value'].each do |p| # for each matching pge do
-              if finalURI.include?(p['url'].downcase) # compare to the final URI from the Utils::fetch routine (the page of metadata)
-                output.comments << "SUCCESS: found a search record referencing #{p['url']} based on an exact-match title search against Bing.\n  "
-                output.score = 'pass'
-              end
-            end
-            unless output.score == 'pass'
-              output.comments << "INFO: No results from Bing included any of #{finalURI.map { |b| b.to_s }}.\n"
-            end
-          else
-            output.comments << "INFO: No search results from Bing\n  "
-          end
-        end
-      end
-    end
-
-    #######  keywords in graph
-
-    g = metadata.graph
-
-    if g.size > 0 # have we found anything
-      output.comments << "INFO: Testing Linked Data-formatted metadata for any predicate that contains 'keyword' in any case.\n "
-      query = SPARQL.parse("select distinct ?o where {?s ?p ?o  FILTER(CONTAINS(lcase(str(?p)), 'keyword'))}") # find predicate containing "title", take object
-      results = query.execute(g)
-      if results.any?
-        seen = Hash.new(false) # appaerntly, distinct isn't working in the sparql...??
-        results.each do |res|
-          next if seen[res[:o].to_s]
-
-          seen[res[:o].to_s] = true
-          keywords = res[:o].to_s # get the keywords
-          output.comments << "INFO: found keywords.\n "
-          output.comments << "INFO: found keywords #{keywords}.\n "
-          output.comments << "INFO: Calling Bing search using #{keywords}.\n "
-          warn "Calling Bing with graph keywords #{keywords}\n\n"
-
-          searchresults = callBing(keywords) # search bing
-          # warn "keywords #{keywords}"
-          # warn "results: #{searchresults}"
-          h = {}
-          begin
-            h = JSON.parse(searchresults) # parse json
-          rescue StandardError
-            warn 'whatever came back from Bing was not parsable JSON'
-            output.comments << "INFO: Bing returned a non-JSON response, indicating that the request failed for some reason\n"
-          end
-
-          if h['webPages'] # are there results
-            output.comments << "INFO: Bing found matches using #{keywords}. Testing matches for a reference to #{finalURI.map do |b|
-              b.to_s
-            end}\n"
-            finalURI = finalURI.map { |b| b.downcase } # make case insensitive search
-            h['webPages']['value'].each do |p| # for each matching pge do
-              if finalURI.include?(p['url'].downcase) # compare to the final URI from the Utils::fetch routine (the page of metadata)
-                output.comments << "SUCCESS: found a search record referencing #{p['url']} based on a keyword search against Bing.\n  "
-                output.score = 'pass'
-              end
-            end
-            unless output.score == 'pass'
-              output.comments << "INFO: No results from Bing included any of #{finalURI.map { |b| b.to_s }}.\n"
-            end
-          else
-            output.comments << "INFO: No results from Bing using keywords #{keywords}.\n"
-          end
-        end
       end
     end
 

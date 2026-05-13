@@ -1,12 +1,18 @@
 class FAIRTest
-  def self.test_FM_F3_M_MetaIdent_meta
+  def self.test_FM_F3_M_DataIdent_meta
     {
       testversion: HARVESTER_VERSION + ':' + 'Tst-3.0.0',
       testname: 'OSTrails Core: Data Identifier in Metadata',
-      testid: 'test_FM_F3_M_MetaIdent',
-      description: "Test that the identifier of the metadata is an unambiguous element of the metadata.
-      Tested options are #{FAIRChampionHarvester::Utils::SELF_IDENTIFIER_PREDICATES} ",
-      metric: 'https://w3id.org/fair-metrics/general/FM_F3_M_MetaIdent',
+      testid: 'test_FM_F3_M_DataIdent',
+      description: 'Test that the identifier of the data is an unambiguous element of the metadata.
+       Only Linked Data is considered - other non-grounded metadata is ignored.
+       Tested predicates that likely point to a data record are:<p/>
+        iao:IAO_0000136, IAO:0000136,
+       ldp:contains,foaf:primaryTopic,schema:distribution,schema:contentUrl,
+       schema,mainEntity,schema:codeRepository,
+       dcat:distribution, dcat:dataset,dcat:downloadURL,dcat:accessURL,
+       sio:SIO_000332, sio:is-about, obo:IAO_0000136',
+      metric: 'https://w3id.org/fair-metrics/general/FM_F3_M_DataIdent',
 
       indicators: 'https://doi.org/10.25504/FAIRsharing.820324',
       type: 'http://edamontology.org/operation_2428',
@@ -28,23 +34,14 @@ class FAIRTest
     }
   end
 
-  # TO DO - THIS TEST IS INCORRECT!  It is testing the data identifier, not the metadata identifier
-  # TO DO - THIS TEST IS INCORRECT!  It is testing the data identifier, not the metadata identifier
-  # TO DO - THIS TEST IS INCORRECT!  It is testing the data identifier, not the metadata identifier
-  # TO DO - THIS TEST IS INCORRECT!  It is testing the data identifier, not the metadata identifier
-  # TO DO - THIS TEST IS INCORRECT!  It is testing the data identifier, not the metadata identifier
-  # TO DO - THIS TEST IS INCORRECT!  It is testing the data identifier, not the metadata identifier
-  # TO DO - THIS TEST IS INCORRECT!  It is testing the data identifier, not the metadata identifier
-  # TO DO - THIS TEST IS INCORRECT!  It is testing the data identifier, not the metadata identifier
-
-  def self.test_FM_F3_M_MetaIdent(guid:)
+  def self.test_FM_F3_M_DataIdent(guid:)
     FtrRuby::Output.clear_comments
 
     output = FtrRuby::Output.new(
       testedGUID: guid,
-      meta: test_FM_F3_M_MetaIdent_meta
+      meta: test_FM_F3_M_DataIdent_meta
     )
-    output.comments << "INFO: TEST VERSION '#{test_FM_F3_M_MetaIdent_meta[:testversion]}'\n"
+    output.comments << "INFO: TEST VERSION '#{test_FM_F3_M_DataIdent_meta[:testversion]}'\n"
 
     metadata = FAIRChampionHarvester::Core.resolveit(guid) # this is where the magic happens!
 
@@ -60,7 +57,6 @@ class FAIRTest
 
     hash = metadata.hash
     graph = metadata.graph
-    properties = FAIRChampionHarvester::Core.deep_dive_properties(hash)
     #############################################################################################################
     #############################################################################################################
     #############################################################################################################
@@ -69,40 +65,20 @@ class FAIRTest
     output.comments << "INFO: Searching metadata for likely identifiers to the data record\n"
     identifier = nil
 
-    properties.each do |keyval|
-      (key, value) = keyval
-      key = key.to_s
-
-      output.comments << "INFO: Searching hash-style metadata for keys indicating a pointer to data.\n"
-      FAIRChampionHarvester::Utils::SELF_IDENTIFIER_PREDICATES.each do |prop|
-        prop =~ %r{.*[#/]([^#/]+)$}
-        prop = ::Regexp.last_match(1)
-        output.comments << "INFO: Searching for key: #{prop}.\n"
-        if key == prop
-          output.comments << "INFO: found '#{prop}' in metadata.  Setting data GUID to #{value} for next test.\n"
-          identifier = value.to_s
-        end
-      end
-    end
-
     if graph.size > 0 # have we found anything yet?
       output.comments << "INFO: Searching Linked Data metadata for predicates indicating a pointer to data.\n"
-      identifier = FAIRChampionHarvester::CommonQueries::GetSelfIdentifier(graph: graph)
+      identifier = FAIRChampionHarvester::CommonQueries::GetDataIdentifier(graph: graph)
     end
 
     if identifier =~ /\w+/
       output.comments << "INFO: Found a likely identifier for the data record in the metadata: #{identifier}\n"
       output.comments << "SUCCESS: Found a likely identifier for the data record in the metadata: #{identifier}\n"
       output.score = 'pass'
-      # this part of the test has been removed because it isn't in the definition of the metric,
-      # which only requires that the metadata identifier be unambiguous,
-      # not that it resolve to a known persistent identifier system.
-      # This test is already being done in IdentPersistent, and it is not necessary to do it here as well.
       # output.comments << "INFO: Now resolving #{identifier} to test its properties.\n"
       # testIdentifier(guid: identifier, output: output) # this will add more comments and a score to @swagger
     else
       output.score = 'fail'
-      output.comments <<  "INFO: Tested the following #{FAIRChampionHarvester::Utils::SELF_IDENTIFIER_PREDICATES}(or their plain JSON hash-key equivalents)\n"
+      output.comments <<  "INFO: Tested the following #{FAIRChampionHarvester::Utils::DATA_PREDICATES}\n"
       output.comments <<  'FAILURE: Was unable to locate the data identifier in the metadata using any (common) property/predicate reserved for this purpose.'
     end
     output.createEvaluationResponse
@@ -132,13 +108,13 @@ class FAIRTest
     end
   end
 
-  def self.test_FM_F3_M_MetaIdent_api
-    api = FtrRuby::OpenAPI.new(meta: test_FM_F3_M_MetaIdent_meta)
+  def self.test_FM_F3_M_DataIdent_api
+    api = FtrRuby::OpenAPI.new(meta: test_FM_F3_M_DataIdent_meta)
     api.get_api
   end
 
-  def self.test_FM_F3_M_MetaIdent_about
-    dcat = FtrRuby::DCAT_Record.new(meta: test_FM_F3_M_MetaIdent_meta)
+  def self.test_FM_F3_M_DataIdent_about
+    dcat = FtrRuby::DCAT_Record.new(meta: test_FM_F3_M_DataIdent_meta)
     dcat.get_dcat
   end
 end

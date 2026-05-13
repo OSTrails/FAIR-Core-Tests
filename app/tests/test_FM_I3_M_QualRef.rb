@@ -5,7 +5,10 @@ class FAIRTest
       testname: 'OSTrails Core: Metadata Contains Outward Links',
       testid: 'test_FM_I3_M_QualRef',
       description: 'Maturity Indicator to test if the metadata links outward to third-party resources.
-      It only tests metadata that can be represented as Linked Data.',
+      Note that this test only examines metadata that is represented as Linked Data.
+      The test passes if the object of any triple (non-structural triples only) is a URI that points to a host
+      other than the host of the metadata itself.  This is a very weak test,
+      but it is designed to encourage data stewards to link their metadata to external resources. ',
       metric: 'https://w3id.org/fair-metrics/general/FM_I3_M_QualRef',
       indicators: 'https://doi.org/10.25504/FAIRsharing.ae22b8',
       type: 'http://edamontology.org/operation_2428',
@@ -49,9 +52,7 @@ class FAIRTest
       return output.createEvaluationResponse
     end
 
-    hash = metadata.hash
     graph = metadata.graph
-    properties = FAIRChampionHarvester::Core.deep_dive_properties(hash)
     #############################################################################################################
     #############################################################################################################
     #############################################################################################################
@@ -66,21 +67,14 @@ class FAIRTest
       return output.createEvaluationResponse
     end
 
-    success = 0 # we will accept 5/10 failures
+    success = 0
     count = 0
-    metadata.finalURI.each do |uri|
-      next unless uri.is_a?(URI::HTTP)
-
-      output.comments << "INFO: Now testing for any triples whose Object is an outward link (i.e. not #{uri.host})\n"
-    end
-
     hosts = []
-    # fill the list of domains that this resource is found i
     metadata.finalURI.each do |uri|
-      next unless uri =~ /http/
+      next unless uri =~ /^http/
 
-      this = URI(uri)
-      hosts << this.host
+      this = URI(uri.to_s)
+      hosts << this.host # get only the host poart of the URI
     end
     g.each do |stm|
       predicate = stm.predicate

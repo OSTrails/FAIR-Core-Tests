@@ -50,7 +50,7 @@ class FAIRTest
 
     # before we go hunting... if it is a DOI, then it has persistent metadata
     if metadata.guidtype == 'doi'
-      output.comments << "PASS: hThe identifier is a DOI, which is well-known to have persistent metadata.\n"
+      output.comments << "PASS: The identifier is a DOI, which is recognized to have persistent metadata.\n"
       output.score = 'pass'
       return output.createEvaluationResponse
     end
@@ -72,12 +72,12 @@ class FAIRTest
         if head
           output.comments << "SUCCESS: Persistence policy URL resolved.\n"
           output.score = 'pass'
-          return output.createEvaluationResponse
         else
           output.comments << "FAILURE: Persistence policy did not resolve.\n"
           output.score = 'fail'
-          return output.createEvaluationResponse
         end
+        return output.createEvaluationResponse
+
       else
         output.comments << "WARN: Did not find the #persistencePolicy predicate in the linked data.\n"
       end
@@ -87,7 +87,7 @@ class FAIRTest
     end
 
     if output.score == 'fail'
-      output.comments << "FAILURE: detected that there might be a persistence policy, but it failed expectations.\n"
+      output.comments << "FAILURE: detected that there might be a persistence policy, but it failed expectations for resolvability.\n"
     else
       output.score = 'indeterminate'
       output.comments << "INDETERMINATE: was unable to find a persistence policy using any approach.\n"

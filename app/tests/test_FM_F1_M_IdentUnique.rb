@@ -26,9 +26,7 @@ class FAIRTest
       creator: 'https://orcid.org/0000-0001-6960-357X',
       protocol: ENV.fetch('TEST_PROTOCOL', 'https'),
       host: ENV.fetch('TEST_HOST', 'localhost'),
-      basePath: ENV.fetch('TEST_PATH', '/tests'),
-      guidance: [['urn:cat_graph:gdn.49738A73',
-                  'You should be using a globally unique persistent identifier like a handle, purl, ark, doi, or w3id']]
+      basePath: ENV.fetch('TEST_PATH', '/tests')
     }
   end
 
@@ -50,9 +48,6 @@ class FAIRTest
       return output.createEvaluationResponse
     end
 
-    # hash = metadata.hash
-    # graph = metadata.graph
-    # properties = FAIRChampionHarvester::Core.deep_dive_properties(hash)
     #############################################################################################################
     #############################################################################################################
     #############################################################################################################

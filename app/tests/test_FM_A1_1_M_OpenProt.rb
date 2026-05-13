@@ -38,9 +38,6 @@ class FAIRTest
 
     type = FAIRChampionHarvester::Core.typeit(guid) # this is where the magic happens!
 
-    # hash = metadata.hash
-    # graph = metadata.graph
-    # properties = FAIRChampionHarvester::Core.deep_dive_properties(hash)
     #############################################################################################################
     #############################################################################################################
     #############################################################################################################

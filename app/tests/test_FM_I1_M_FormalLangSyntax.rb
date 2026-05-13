@@ -4,7 +4,11 @@ class FAIRTest
       testversion: HARVESTER_VERSION + ':' + 'Tst-3.0.0',
       testname: 'OSTrails Core: Data Knowlege Representation Language (Weak Test)',
       testid: 'test_FM_I1_M_FormalLangSyntax',
-      description: "Test if the data uses a formal language broadly applicable for knowledge representation.  This particular test takes a broad view of what defines a 'knowledge representation language'; in this evaluation, a knowledge representation language is interpreted as one in which terms are semantically-grounded in ontologies.  Any form of structured data will pass this test",
+      description: " Test if the data uses a formal language broadly applicable for knowledge
+      representation.  This particular test takes a broad view of what defines a
+      'knowledge representation language'; in this evaluation, a
+      knowledge representation language is interpreted as one in which terms are
+      semantically-grounded in ontologies.  Any form of structured data will pass this test ",
       metric: 'https://w3id.org/fair-metrics/general/FM_I1_M_FormLangSyntax',
 
       indicators: 'https://doi.org/10.25504/FAIRsharing.ec5648',
@@ -56,101 +60,25 @@ class FAIRTest
     #############################################################################################################
     #############################################################################################################
 
-    output.comments << "INFO: Searching metadata for likely identifiers to the data record\n"
-    identifier = nil
-
+    output.score = 'fail' # default to fail, and then we will change to pass if we find something
+    output.comments << "INFO: Searching for hash-style metadata.\n"
     properties.each do |keyval|
-      key = nil
-      value = nil
       (key, value) = keyval
       key = key.to_s
-
-      output.comments << "INFO: Searching hash-style metadata for keys indicating a pointer to data.\n"
-      FAIRChampionHarvester::Utils::DATA_PREDICATES.each do |prop|
-        prop =~ %r{.*[#/]([^#/]+)$}
-        prop = ::Regexp.last_match(1)
-        output.comments << "INFO: Searching for key: #{prop}.\n"
-        if key == prop
-          output.comments << "INFO: found '#{prop}' in metadata.  Setting data GUID to #{value} for next test.\n"
-          identifier = value.to_s
-        end
+      value = value.to_s
+      if key && value
+        output.comments << "SUCCESS: hash style metadata found.\n"
+        output.score = 'pass'
       end
     end
+    output.comments << "INFO: Searching for linked data metadata.\n"
 
     if graph.size > 0 # have we found anything yet?
-      output.comments << "INFO: Searching Linked Data metadata for predicates indicating a pointer to data.\n"
-      identifier = FAIRChampionHarvester::CommonQueries::GetDataIdentifier(graph: graph)
+      output.comments << "SUCCESS: linked data style metadata found\n"
+      output.score = 'pass'
     end
-
-    if identifier =~ /\w+/
-      output.comments << "INFO: Now resolving #{identifier} to test its properties.\n"
-      testIdentifier(guid: identifier, output: output) # this will add more comments and a score to output
-    else
-      output.score = 'indeterminate'
-      output.comments <<  "INFO: Tested the following #{FAIRChampionHarvester::Utils::DATA_PREDICATES}(or their plain JSON hash-key equivalents)\n"
-      output.comments <<  'INDETERMINATE: Was unable to locate the data identifier in the metadata using any (common) property/predicate reserved for this purpose.'
-    end
+    output.comments << "FAILURE: No metadata found in either hash or linked data style.\n" if output.score == 'fail'
     output.createEvaluationResponse
-  end
-
-  def self.testIdentifier(guid:, output:)
-    type, url = FAIRChampionHarvester::Core.convertToURL(guid)
-    if url.nil?
-      output.comments << "INDETERMINATE: The GUID identifier of the data #{guid} did not match any known identification system (tested inchi, doi, handle, uri) and therefore did not pass this metric.  If you think this is an error, please contact the FAIR Metrics group (http://fairmetrics.org)."
-      output.score = 'indeterminate'
-      return
-    end
-
-    if type == 'handle'
-      output.comments << "INFO: The GUID of the data is a Handle.\n"
-    elsif type == 'doi'
-      output.comments << "INFO: The GUID of the data is a DOI.\n"
-    elsif type == 'inchi'
-      output.comments << "INFO: The GUID of the data is a InChI.\n"
-    elsif type == 'uri'
-      output.comments << "INFO: The GUID of the data appears to be a URI/URL.\n"
-    else
-      output.comments << "INFO: The GUID of the data could not be typed, therefore it cannot be tested.\n"
-      output.score = 'fail'
-      return
-    end
-    headers = FAIRChampionHarvester::Core.head(url, FAIRChampionHarvester::Utils::AcceptHeader) # returns headers or false
-    if headers
-      if headers.keys.include?(:content_type)
-        type = headers[:content_type]
-        rdfformats = FAIRChampionHarvester::Utils::RDF_FORMATS.values.flatten
-        if rdfformats.include?(type)
-          output.comments << "SUCCESS: The reported content-type of the data is [#{type}] which is a known Linked Data format\n"
-          output.score = 'pass'
-          return
-        else
-          output.comments << "FAILURE: The reported content-type of the data is [#{type}] which is not a known Linked Data format\n"
-          output.score = 'fail'
-          return
-        end
-        structuredformats = Utils::RDF_FORMATS.values.append Utils::XML_FORMATS.values.append Utils::JSON_FORMATS.values.append [
-          'text/xhtml+xml', 'application/xhtml+xml'
-        ]
-        structuredformats.flatten!
-        if structuredformats.include?(type)
-          output.comments << "SUCCESS: The reported content-type of the data is [#{type}] which is, or is likely to contain, structured data\n"
-          output.score = 'pass'
-          nil
-        else
-          output.comments << "FAILURE: The reported content-type of the data is [#{type}] which is not likely to contain structured data\n"
-          output.score = 'fail'
-          nil
-        end
-      else
-        output.comments << "INDETERMINATE: The URL to the data is not reporting a Content-Type in its headers.  This test will now halt.\n"
-        output.score = 'indeterminate'
-        nil
-      end
-    else
-      output.comments << "INDETERMINATE: The url #{url} failed to resolve via a HEAD call with headers #{FAIRChampionHarvester::Utils::AcceptHeader}, therefore we cannot continue\n"
-      output.score = 'indeterminate'
-      nil
-    end
   end
 
   def self.test_FM_I1_M_FormalLangSyntax_api

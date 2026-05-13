@@ -42,36 +42,21 @@ class FAIRTest
 
     type = FAIRChampionHarvester::Core.typeit(guid)
 
-    # metadata = FAIRChampionHarvester::Core.resolveit(guid) # this is where the magic happens!
-
-    # metadata.comments.each do |c|
-    #   output.comments << c
-    # end
-
-    # if metadata.guidtype == 'unknown'
-    #   output.score = "indeterminate"
-    #   output.comments << "INDETERMINATE: The identifier #{guid} did not match any known identification system.\n"
-    #   return output.createEvaluationResponse
-    # end
-
-    # hash = metadata.hash
-    # graph = metadata.graph
-    # properties = FAIRChampionHarvester::Core.deep_dive_properties(hash)
     #############################################################################################################
     #############################################################################################################
     #############################################################################################################
     #############################################################################################################
     if !type
-      output.comments << "FAILURE: The GUID identifier of the metadata #{guid} did not match any known identification system.\n"
-      output.score = 'fail'
+      output.comments << "INDETERMINATE: The GUID identifier of the metadata #{guid} did not match any known identification system.\n"
+      output.score = 'indeterminate'
     elsif type == 'uri'
       output.comments << "INFO: The metadata GUID appears to be a URL.  Testing known URL persistence schemas (purl, oclc, fdlp, purlz, w3id, ark, doi(as URL)).\n"
       if (guid =~ /(purl)\./) or (guid =~ /(oclc)\./) or (guid =~ /(fdlp)\./) or (guid =~ /(purlz)\./) or (guid =~ /(w3id)\./) or (guid =~ /(ark):/) or (guid =~ /(doi.org)/)
         output.comments << "SUCCESS: The metadata GUID conforms with #{::Regexp.last_match(1)}, which is known to be persistent.\n"
         output.score = 'pass'
       else
-        output.comments << "FAILURE: The metadata GUID does not conform with any known permanent-URL system.\n"
-        output.score = 'fail'
+        output.comments << "INDETERMINATE: The metadata GUID does not conform with any known permanent-URL system.\n"
+        output.score = 'indeterminate'
       end
     else
       output.comments << "SUCCESS: The GUID of the metadata is a #{type}, which is known to be persistent.\n"

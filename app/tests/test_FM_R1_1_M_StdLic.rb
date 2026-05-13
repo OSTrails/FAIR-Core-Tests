@@ -5,9 +5,9 @@ class FAIRTest
       testname: 'OSTrails Core: Metadata Includes License',
       testid: 'test_FM_R1_1_M_StdLic',
       description: "Maturity Indicator to test if the metadata contains an explicit pointer to the license.
-      This test will use a case-insensitive regular expression, and scan both key/value style metadata,
-      as well as linked data metadata.  Tests: xhtml, dvia, dcterms, cc, data.gov.au,
-      and Schema license predicates in linked data",
+      This test will use a case-insensitive regular expression on key/value style metadata,
+      and predicate lookup on linked data metadata.  Tests: Tests for the presence of: [\"http://www.w3.org/1999/xhtml/vocab#license\", \"https://www.w3.org/1999/xhtml/vocab#license\", \"http://purl.org/ontology/dvia#hasLicense\", \"https://purl.org/ontology/dvia#hasLicense\", \"http://purl.org/dc/terms/license\", \"https://purl.org/dc/terms/license\", \"http://creativecommons.org/ns#license\", \"https://creativecommons.org/ns#license\", \"http://reference.data.gov.au/def/ont/dataset#hasLicense\", \"https://reference.data.gov.au/def/ont/dataset#hasLicense\"],
+      and Schema license predicates in linked data.  No further validation is done on the value of the license property, but the test will check if the value is a URL or not, and report that in the comments.",
       metric: 'https://w3id.org/fair-metrics/general/FM_R1-1_M_StdLic',
       indicators: 'https://doi.org/10.25504/FAIRsharing.aff99f',
       type: 'http://edamontology.org/operation_2428',
@@ -60,24 +60,20 @@ class FAIRTest
     #############################################################################################################
 
     output.score = 'fail'
-    if metadata.hash.size > 1
+    if mproperties.size > 1
       output.comments << "INFO:  searching hash-style metadata for a match with /license/ in any case.\n"
-      properties = FAIRChampionHarvester::Core.deep_dive_properties(hash)
 
       properties.each do |keyval|
-        key = nil
-        value = nil
-        (key, value) = keyval
+        (key, _value) = keyval
         key = key.to_s
         next unless key =~ /license/i
 
         output.comments << "SUCCESS: found #{key} in hashed metadata.\n"
         output.score = 'pass'
-        return output.createEvaluationResponse
       end
     end
 
-    g = graph
+    g = graph # shorter
     output.score = 'fail'
     queries = %w[
       http://www.w3.org/1999/xhtml/vocab#license https://www.w3.org/1999/xhtml/vocab#license
@@ -99,6 +95,7 @@ class FAIRTest
           output.score = 'pass'
           output.comments << "SUCCESS: Found the #{predicate} predicate with a Resource as its value.\n"
         else
+          output.score = 'pass'
           output.comments << "WARN: Found the #{predicate} predicate, but it does not have a Resource as its value, thus is non-compliant.\n"
         end
       end
@@ -112,6 +109,7 @@ class FAIRTest
           output.score = 'pass'
           output.comments << "SUCCESS: Found the Schema license predicate with a Resource as its value.\n"
         else
+          output.score = 'pass'
           output.comments << "WARN: Found the Schema license predicate, but it does not have a Resource as its value.  While this is compliant with Schema, it is not best-practice.  Please update your metadata to point to a URL containing the license.\n"
         end
       end
@@ -125,15 +123,16 @@ class FAIRTest
           output.score = 'pass'
           output.comments << "SUCCESS: Found the Schema license predicate with a Resource as its value.\n"
         else
+          output.score = 'pass'
           output.comments << "WARN: Found the Schema license predicate, but it does not have a Resource as its value.  While this is compliant with Schema, it is not best-practice.  Please update your metadata to point to a URL containing the license.\n"
         end
       end
 
     else
-      output.comments << 'WARN: No Linked Data metadata found.  '
+      output.comments << 'WARN: No Linked Data metadata found.'
     end
 
-    output.comments << 'FAILURE: No License property was found in the metadata.  ' if output.score == 'fail'
+    output.comments << 'FAILURE: No License property was found in the metadata.' if output.score == 'fail'
 
     output.createEvaluationResponse
   end

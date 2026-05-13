@@ -64,8 +64,6 @@ class FAIRTest
     identifier = nil
 
     properties.each do |keyval|
-      key = nil
-      value = nil
       (key, value) = keyval
       key = key.to_s
 

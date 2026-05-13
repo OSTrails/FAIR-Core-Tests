@@ -5,8 +5,9 @@ class FAIRTest
       testname: 'OSTrails Core: Structured Metadata',
       testid: 'test_FM_F2_M_StructMeta_Syntactic',
       description: 'Tests whether a machine is able to find structured metadata.
-      This could be (for example) RDFa, embedded json,
-      json-ld, or content-negotiated structured metadata such as RDF Turtle.
+      This could be (for example) XML, RDFa, embedded json,
+      json-ld, or content-negotiated structured metadata such as RDF Turtle.  This test does not require that the
+      metadata be linked data, but it does require that the metadata be structured in a way that a machine can parse it.
       Discovered metadata terms are not evaluated',
       metric: 'https://w3id.org/fair-metrics/general/FM_F2_M_StructMeta',
       indicators: 'https://doi.org/10.25504/FAIRsharing.e05e98',
@@ -53,7 +54,6 @@ class FAIRTest
 
     hash = metadata.hash
     graph = metadata.graph
-    properties = FAIRChampionHarvester::Core.deep_dive_properties(hash)
     #############################################################################################################
     #############################################################################################################
     #############################################################################################################

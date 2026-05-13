@@ -4,7 +4,7 @@ class FAIRTest
       testversion: HARVESTER_VERSION + ':' + 'Tst-3.0.0',
       testname: 'OSTrails Core: Data Authorization',
       testid: 'test_FM_A1_2_M_Auth',
-      description: 'If the resolution protocol supports authentication and authorization for access to restricted content.',
+      description: 'If the resolution protocol for the Metadata supports authentication and authorization for access to restricted content.',
       keywords: ['FAIR Assessment', 'Authentication', 'Authorization', 'FAIR Principles'],
       metric: 'https://w3id.org/fair-metrics/general/FM_A1-2_M_Auth',
 
@@ -37,65 +37,19 @@ class FAIRTest
 
     output.comments << "INFO: TEST VERSION '#{test_FM_A1_2_M_Auth_meta[:testversion]}'\n"
 
-    metadata = FAIRChampionHarvester::Core.resolveit(guid) # this is where the magic happens!
+    type = FAIRChampionHarvester::Core.typeit(guid) # this is where the magic happens!
 
-    metadata.comments.each do |c|
-      output.comments << c
-    end
-
-    if metadata.guidtype == 'unknown'
-      output.score = 'indeterminate'
-      output.comments << "INDETERMINATE: The identifier #{guid} did not match any known identification system.\n"
-      return output.createEvaluationResponse
-    end
-
-    hash = metadata.hash
-
-    properties = FAIRChampionHarvester::Core.deep_dive_properties(hash)
-
-    output.comments << "INFO: Searching metadata for likely identifiers to the data record\n"
-    id_hash = id_graph = nil # set to nil for now
-
-    properties.each do |keyval|
-      key = nil
-      value = nil
-      (key, value) = keyval
-      key = key.to_s
-
-      output.comments << "INFO: Searching hash-style metadata for keys indicating a pointer to data.\n"
-      FAIRChampionHarvester::Utils::DATA_PREDICATES.each do |prop|
-        prop =~ %r{.*[#/]([^#/]+)$}
-        prop = Regexp.last_match(1)
-        output.comments << "INFO: Searching for key: #{prop}.\n"
-        next unless key == prop
-
-        output.comments << "INFO: found '#{prop}' in metadata.  Setting data GUID to #{value} for next test.\n"
-        warn "INFO: found '#{prop}' in metadata.  Setting data GUID to #{value} for next test.\n"
-        id_hash = value.to_s
-      end
-    end
-
-    if metadata.graph.size > 0 # have we found anything yet?
-      output.comments << "INFO: Searching Linked Data metadata for predicates indicating a pointer to data.\n"
-      id_graph = FAIRChampionHarvester::CommonQueries::GetDataIdentifier(graph: metadata.graph)
-      warn "\n\nfound identifier #{id_graph} \n\n"
-    end
-
-    if id_hash.nil? and id_graph.nil?
-      output.comments << "FAILURE: No data identifier was found in the metadata record.\n"
-      output.score = 'fail'
-      return output.createEvaluationResponse
-    end
-
-    metadata2 = FAIRChampionHarvester::Core.typeit(id_hash || id_graph)
-
-    if metadata2
-      output.comments << "SUCCESS: The identifier #{@identifier} is recognized as a #{metadata2}, which is resolvable by an protocol that allows authorization/authentication.\n"
+    #############################################################################################################
+    #############################################################################################################
+    #############################################################################################################
+    #############################################################################################################
+    if type
       output.score = 'pass'
+      output.comments << "SUCCESS: The identifier #{guid} is of type #{type}, which supports authentication."
       output.createEvaluationResponse
     else
-      output.comments << "FAILURE: The identifier #{@identifier} did not match any known identification system.\n"
-      output.score = 'fail'
+      output.score = 'indeterminate'
+      output.comments << "INDETERMINATE: The identifier #{guid} did not match any known identification system.\n"
       output.createEvaluationResponse
     end
   end

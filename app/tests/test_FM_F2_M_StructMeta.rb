@@ -4,11 +4,11 @@ class FAIRTest
       testversion: HARVESTER_VERSION + ':' + 'Tst-3.0.0',
       testname: 'OSTrails Core: Grounded Metadata',
       testid: 'test_FM_F2_M_StructMeta',
-      description: "Tests whether a machine is able to find 'grounded' metadata.
+      description: "Tests whether a machine is able to find 'semantically grounded' metadata.
       i.e. metadata terms that are in a resolvable namespace, where resolution
       leads to a definition of the meaning of the term. Examples include JSON-LD,
-      embedded schema, or any form of RDF. This test currently excludes XML,
-      even when terms are namespaced.  Future versions of this test may be more flexible.",
+      embedded schema.org, or any form of RDF. This test excludes XML and other structured metadata formats that do not have resolvable namespaces, even
+      even when terms are namespaced.",
       metric: 'https://w3id.org/fair-metrics/general/FM_F2_M_StructMeta',
       indicators: 'https://doi.org/10.25504/FAIRsharing.e05e98',
       type: 'http://edamontology.org/operation_2428',
@@ -52,9 +52,7 @@ class FAIRTest
       return output.createEvaluationResponse
     end
 
-    hash = metadata.hash
     graph = metadata.graph
-    properties = FAIRChampionHarvester::Core.deep_dive_properties(hash)
     #############################################################################################################
     #############################################################################################################
     #############################################################################################################
