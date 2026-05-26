@@ -38,10 +38,10 @@ gem 'base64', '~> 0.3.0'
 
 # gem 'debase', '~> 0.2.5.beta2'  # dev only — not installed in Docker
 
-gem 'ftr_ruby', '~> 0.1.10'
+gem 'ftr_ruby', '~> 0.1.11'
 
 gem 'triple_easy', '~> 0.1.0'
 
-gem 'fair_champion_harvester', '~> 0.1.9'
+gem 'fair_champion_harvester', '~> 0.1.11'
 
 gem 'http', '~> 6.0'

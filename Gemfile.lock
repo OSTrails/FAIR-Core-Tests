@@ -28,7 +28,7 @@ GEM
       scanf (~> 1.0)
       sxp (~> 2.0)
       unicode-types (~> 1.8)
-    fair_champion_harvester (0.1.9)
+    fair_champion_harvester (0.1.11)
       base64 (~> 0.3)
       connection_pool (~> 2.4, < 3.0)
       http (~> 6.0)
@@ -86,7 +86,7 @@ GEM
     ffi (1.17.4-x86_64-darwin)
     ffi (1.17.4-x86_64-linux-gnu)
     ffi (1.17.4-x86_64-linux-musl)
-    ftr_ruby (0.1.10)
+    ftr_ruby (0.1.11)
       base64 (~> 0.3)
       connection_pool (~> 2.4, < 3.0)
       http (~> 6.0)
@@ -447,8 +447,8 @@ DEPENDENCIES
   base64 (~> 0.3.0)
   bcrypt
   dotenv (~> 2.8)
-  fair_champion_harvester (~> 0.1.9)
-  ftr_ruby (~> 0.1.10)
+  fair_champion_harvester (~> 0.1.11)
+  ftr_ruby (~> 0.1.11)
   http (~> 6.0)
   json (~> 2.7.1)
   json-canonicalization (~> 1.0.0)
@@ -495,7 +495,7 @@ CHECKSUMS
   domain_name (0.6.20240107) sha256=5f693b2215708476517479bf2b3802e49068ad82167bcd2286f899536a17d933
   dotenv (2.8.1) sha256=c5944793349ae03c432e1780a2ca929d60b88c7d14d52d630db0508c3a8a17d8
   ebnf (2.6.0) sha256=e746a316caa885cc45e243dc33efc194943956760bc9bc13948de1732fbcf63e
-  fair_champion_harvester (0.1.9) sha256=3998c413b788de06e2a6ccbec0a85f53b6af3125f62d7d1ae496403da77a5e7a
+  fair_champion_harvester (0.1.11) sha256=213701823078cbe6b0cca1bda44686e9002d5721c49163485e2d2f66b609de95
   faraday (1.10.5) sha256=b144f1d2b045652fa820b5f532723e1643cc28b93dae911d784e5c5f88e8f6ed
   faraday-cookie_jar (0.0.8) sha256=0140605823f8cc63c7028fccee486aaed8e54835c360cffc1f7c8c07c4299dbb
   faraday-em_http (1.0.0) sha256=7a3d4c7079789121054f57e08cd4ef7e40ad1549b63101f38c7093a9d6c59689
@@ -520,7 +520,7 @@ CHECKSUMS
   ffi (1.17.4-x86_64-darwin) sha256=aa70390523cf3235096cf64962b709b4cfbd5c082a2cb2ae714eb0fe2ccda496
   ffi (1.17.4-x86_64-linux-gnu) sha256=9d3db14c2eae074b382fa9c083fe95aec6e0a1451da249eab096c34002bc752d
   ffi (1.17.4-x86_64-linux-musl) sha256=3fdf9888483de005f8ef8d1cf2d3b20d86626af206cbf780f6a6a12439a9c49e
-  ftr_ruby (0.1.10) sha256=f7468044bc9b3d689a13ae6c7efe55cb66959b68969f05a16c8221d670297c70
+  ftr_ruby (0.1.11) sha256=8503407cba6467cf53917b7211ad5d1b14a2916e223b3c4094a0db161abbde17
   haml (6.4.0) sha256=b2e20652be52ac9a3be328e8ff411ad007e82fc4e78e1a5cdefad537a697cf6a
   hamster (3.0.0) sha256=5951e3a3ffd15ba854a976ac36ebae9469966f726034ffed0dccdb6d12d434d8
   hashdiff (1.2.1) sha256=9c079dbc513dfc8833ab59c0c2d8f230fa28499cc5efb4b8dd276cf931457cd1
