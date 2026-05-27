@@ -28,7 +28,7 @@ GEM
       scanf (~> 1.0)
       sxp (~> 2.0)
       unicode-types (~> 1.8)
-    fair_champion_harvester (0.1.11)
+    fair_champion_harvester (0.1.12)
       base64 (~> 0.3)
       connection_pool (~> 2.4, < 3.0)
       http (~> 6.0)
@@ -447,7 +447,7 @@ DEPENDENCIES
   base64 (~> 0.3.0)
   bcrypt
   dotenv (~> 2.8)
-  fair_champion_harvester (~> 0.1.11)
+  fair_champion_harvester (~> 0.1.12)
   ftr_ruby (~> 0.1.11)
   http (~> 6.0)
   json (~> 2.7.1)
@@ -495,7 +495,7 @@ CHECKSUMS
   domain_name (0.6.20240107) sha256=5f693b2215708476517479bf2b3802e49068ad82167bcd2286f899536a17d933
   dotenv (2.8.1) sha256=c5944793349ae03c432e1780a2ca929d60b88c7d14d52d630db0508c3a8a17d8
   ebnf (2.6.0) sha256=e746a316caa885cc45e243dc33efc194943956760bc9bc13948de1732fbcf63e
-  fair_champion_harvester (0.1.11) sha256=213701823078cbe6b0cca1bda44686e9002d5721c49163485e2d2f66b609de95
+  fair_champion_harvester (0.1.12) sha256=caeb577140ecbf341fdff47bbd60840bcb442cd616d5cfafa7bfe23545aca8d8
   faraday (1.10.5) sha256=b144f1d2b045652fa820b5f532723e1643cc28b93dae911d784e5c5f88e8f6ed
   faraday-cookie_jar (0.0.8) sha256=0140605823f8cc63c7028fccee486aaed8e54835c360cffc1f7c8c07c4299dbb
   faraday-em_http (1.0.0) sha256=7a3d4c7079789121054f57e08cd4ef7e40ad1549b63101f38c7093a9d6c59689

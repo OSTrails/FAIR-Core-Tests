@@ -42,6 +42,6 @@ gem 'ftr_ruby', '~> 0.1.11'
 
 gem 'triple_easy', '~> 0.1.0'
 
-gem 'fair_champion_harvester', '~> 0.1.11'
+gem 'fair_champion_harvester', '~> 0.1.12'
 
 gem 'http', '~> 6.0'

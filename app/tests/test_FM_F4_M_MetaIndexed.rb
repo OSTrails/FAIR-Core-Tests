@@ -251,6 +251,7 @@ ORDER BY ?subject ?keywordProperty")
     end
 
     unless output.score == 'pass'
+      output.score = 'fail'
       output.comments << "FAILURE: Was unable to discover the metadata record by search in Bing using any method\n"
     end
 
