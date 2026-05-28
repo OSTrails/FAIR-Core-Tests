@@ -86,7 +86,7 @@ GEM
     ffi (1.17.4-x86_64-darwin)
     ffi (1.17.4-x86_64-linux-gnu)
     ffi (1.17.4-x86_64-linux-musl)
-    ftr_ruby (0.1.11)
+    ftr_ruby (0.1.12)
       base64 (~> 0.3)
       connection_pool (~> 2.4, < 3.0)
       http (~> 6.0)
@@ -448,7 +448,7 @@ DEPENDENCIES
   bcrypt
   dotenv (~> 2.8)
   fair_champion_harvester (~> 0.1.12)
-  ftr_ruby (~> 0.1.11)
+  ftr_ruby (~> 0.1.12)
   http (~> 6.0)
   json (~> 2.7.1)
   json-canonicalization (~> 1.0.0)
@@ -520,7 +520,7 @@ CHECKSUMS
   ffi (1.17.4-x86_64-darwin) sha256=aa70390523cf3235096cf64962b709b4cfbd5c082a2cb2ae714eb0fe2ccda496
   ffi (1.17.4-x86_64-linux-gnu) sha256=9d3db14c2eae074b382fa9c083fe95aec6e0a1451da249eab096c34002bc752d
   ffi (1.17.4-x86_64-linux-musl) sha256=3fdf9888483de005f8ef8d1cf2d3b20d86626af206cbf780f6a6a12439a9c49e
-  ftr_ruby (0.1.11) sha256=8503407cba6467cf53917b7211ad5d1b14a2916e223b3c4094a0db161abbde17
+  ftr_ruby (0.1.12) sha256=30d13896407793aebdd80b532b882ebe7844c9397a2a7317eb52bd1aafcfc13f
   haml (6.4.0) sha256=b2e20652be52ac9a3be328e8ff411ad007e82fc4e78e1a5cdefad537a697cf6a
   hamster (3.0.0) sha256=5951e3a3ffd15ba854a976ac36ebae9469966f726034ffed0dccdb6d12d434d8
   hashdiff (1.2.1) sha256=9c079dbc513dfc8833ab59c0c2d8f230fa28499cc5efb4b8dd276cf931457cd1

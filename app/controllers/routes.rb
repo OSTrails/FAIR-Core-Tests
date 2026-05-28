@@ -56,19 +56,20 @@ def set_routes(classes: [])
     @result = FAIRTest.send(id, guid: guid) # @result is a json STRING!
 
     if request.accept?('text/html') || request.accept?('application/xhtml+xml')
-      content_type :html
       data = JSON.parse(@result)
-      @test_execution = data['@graph'].find { |g| g['@type'] == 'ftr:TestExecutionActivity' }
-      @test = data['@graph'].find { |g| g['@id'] == @test_execution['prov:wasAssociatedWith']['@id'] }
-      @metric_implementation = @test['sio:SIO_000233'] # Extract SIO_000233
-      @test_result = data['@graph'].find { |g| g['@type'] == 'ftr:TestResult' }
-      @result_value = @test_result['prov:value']['@value'] # Extract pass/fail
-      halt erb :testresult
-    else
-      # Assume JSON/LD — most permissive path
-      content_type 'application/ld+json'
-      halt @result
+      @test_execution = data['@graph']&.find { |g| g['@type'] == 'ftr:TestExecutionActivity' }
+      if @test_execution
+        content_type :html
+        @test = data['@graph'].find { |g| g['@id'] == @test_execution['prov:wasAssociatedWith']['@id'] }
+        @metric_implementation = @test['sio:SIO_000233'] # Extract SIO_000233
+        @test_result = data['@graph'].find { |g| g['@type'] == 'ftr:TestResult' }
+        @result_value = @test_result['prov:value']['@value'] # Extract pass/fail
+        halt erb :testresult
+      end
     end
+    # Assume JSON/LD — most permissive path, or non-FTR result (e.g. fc_harvest_only)
+    content_type 'application/ld+json'
+    halt @result
     error 406
   end
 

@@ -38,7 +38,7 @@ gem 'base64', '~> 0.3.0'
 
 # gem 'debase', '~> 0.2.5.beta2'  # dev only — not installed in Docker
 
-gem 'ftr_ruby', '~> 0.1.11'
+gem 'ftr_ruby', '~> 0.1.12'
 
 gem 'triple_easy', '~> 0.1.0'
 
