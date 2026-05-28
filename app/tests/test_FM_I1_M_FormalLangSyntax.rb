@@ -1,7 +1,7 @@
 class FAIRTest
   def self.test_FM_I1_M_FormalLangSyntax_meta
     {
-      testversion: HARVESTER_VERSION + ':' + 'Tst-3.0.0',
+      testversion: HARVESTER_VERSION + ':' + 'Tst-3.0.1',
       testname: 'OSTrails Core: Data Knowlege Representation Language (Weak Test)',
       testid: 'test_FM_I1_M_FormalLangSyntax',
       description: "Test if the data uses a formal language broadly applicable for knowledge
