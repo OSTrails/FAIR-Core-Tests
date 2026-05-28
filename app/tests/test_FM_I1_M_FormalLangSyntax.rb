@@ -4,13 +4,11 @@ class FAIRTest
       testversion: HARVESTER_VERSION + ':' + 'Tst-3.0.0',
       testname: 'OSTrails Core: Data Knowlege Representation Language (Weak Test)',
       testid: 'test_FM_I1_M_FormalLangSyntax',
-      description: " Test if the data uses a formal language broadly applicable for knowledge
+      description: "Test if the data uses a formal language broadly applicable for knowledge
       representation.  This particular test takes a broad view of what defines a
       'knowledge representation language'; in this evaluation, a
-      knowledge representation language is interpreted as one in which terms are
-      semantically-grounded in ontologies.  Any form of structured data will pass this test ",
+      knowledge representation language is interpreted any form of structured data (i.e. a purely syntactic test).  This test is a 'weak' test because it does not attempt to evaluate the semantics of the data, but only the syntax.  The presence of structured data in any form is sufficient to pass this test.",
       metric: 'https://w3id.org/fair-metrics/general/FM_I1_M_FormLangSyntax',
-
       indicators: 'https://doi.org/10.25504/FAIRsharing.ec5648',
       type: 'http://edamontology.org/operation_2428',
       license: 'https://creativecommons.org/publicdomain/zero/1.0/',
