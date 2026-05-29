@@ -201,11 +201,10 @@ RSpec.configure do |config|
     allow(FAIRTest).to receive(:send).and_call_original
     TEST_IDS.each do |test_id|
       allow(FAIRTest).to receive(:send).with(test_id, anything).and_return(FAIRTestStub.send(test_id))
-      allow(FAIRTest).to receive(:send).with("#{test_id}_about",
-                                             anything).and_return(FAIRTestStub.send("#{test_id}_about"))
-      allow(FAIRTest).to receive(:send).with("#{test_id}_api", anything).and_return(FAIRTestStub.send("#{test_id}_api"))
+      allow(FAIRTest).to receive(:send).with("#{test_id}_about").and_return(FAIRTestStub.send("#{test_id}_about"))
+      allow(FAIRTest).to receive(:send).with("#{test_id}_api").and_return(FAIRTestStub.send("#{test_id}_api"))
     end
-    allow(FAIRTest).to receive(:send).with(anything, anything) do |method_name, *args|
+    allow(FAIRTest).to receive(:send).with(anything, anything) do |method_name, *_args|
       FAIRTestStub.send(method_name)
     end
     stub_metrics = FAIRChampion::HarvesterStub.get_tests_metrics(tests: TEST_IDS)

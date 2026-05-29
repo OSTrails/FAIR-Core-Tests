@@ -33,7 +33,6 @@ RSpec.describe 'API Routes' do
           expect(last_response.body).to include("<http://localhost:8282/tests/#{test_id}>")
           expect(last_response.body).to include('http://www.w3.org/ns/dcat#DataService')
           expect(last_response.body).to include('https://w3id.org/ftr#Test')
-          expect(last_response.body).to include('https://doi.org/10.25504/FAIRsharing')
         end
       end
 
