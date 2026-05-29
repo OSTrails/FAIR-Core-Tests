@@ -91,7 +91,9 @@ end
 module FAIRChampion
   module HarvesterStub
     def self.get_tests_metrics(tests:)
-      tests.map { |t| { test: t, metrics: { score: 100, name: "Mock #{t}" } } }
+      labels = tests.to_h { |t| [t, "Mock Metric #{t}"] }
+      landingpages = tests.to_h { |t| [t, "https://example.org/metric/#{t}"] }
+      [labels, landingpages]
     end
   end
 end
@@ -206,7 +208,8 @@ RSpec.configure do |config|
     allow(FAIRTest).to receive(:send).with(anything, anything) do |method_name, *args|
       FAIRTestStub.send(method_name)
     end
-    allow(FAIRChampion::Harvester).to receive(:get_tests_metrics).and_return(FAIRChampion::HarvesterStub.get_tests_metrics(tests: TEST_IDS))
+    stub_metrics = FAIRChampion::HarvesterStub.get_tests_metrics(tests: TEST_IDS)
+    allow_any_instance_of(FtrRuby::TestInfra).to receive(:get_tests_metrics).and_return(stub_metrics)
   end
 end
 
