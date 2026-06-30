@@ -2,7 +2,7 @@ version: "3"
 services:
 
   tests: 
-    image: markw/fair-core-tests:0.1.47
+    image: markw/fair-core-tests:0.3.6
     container_name: tests
     environment:
       TEST_PROTOCOL: http
