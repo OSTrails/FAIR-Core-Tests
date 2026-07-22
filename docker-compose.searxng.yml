@@ -1,0 +1,30 @@
+services:
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tests
+    ports:
+      - "8282:8282"
+    environment:
+      SEARXNG_URL: http://searxng:8080/search
+      SEARXNG_OPEN_TIMEOUT: "5"
+      SEARXNG_READ_TIMEOUT: "20"
+      TEST_PROTOCOL: "http"
+      TEST_HOST: "fair-core-tests:8282"
+      TEST_PATH: "/tests/"
+      FAIRSHARING_KEY: your_fairsharing_key_here
+    depends_on:
+      - searxng
+
+  searxng:
+    image: searxng/searxng:latest
+    ports:
+      - "9090:8080"
+    volumes:
+      - ./searxng-config/settings.yml:/etc/searxng/settings.yml:ro
+
+  tika:
+    image: apache/tika:3.3.0.0
+    container_name: evaluator-tika
+    restart: always
