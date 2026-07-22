@@ -19,8 +19,6 @@ services:
 
   searxng:
     image: searxng/searxng:latest
-    ports:
-      - "9090:8080"
     volumes:
       - ./searxng-config/settings.yml:/etc/searxng/settings.yml:ro
 
