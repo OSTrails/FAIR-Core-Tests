@@ -4,7 +4,7 @@ class FAIRTest
       testversion: HARVESTER_VERSION + ':' + 'Tst-2.0.0',
       testname: 'OSTrails Core: Searchable in major search engine',
       testid: 'fc_searchable',
-      description: 'Tests whether a machine is able to discover the resource by search, using Microsoft Bing.',
+      description: 'Tests whether a machine is able to discover the resource using a SearXNG metasearch service.',
       metric: 'https://w3id.org/fair-metrics/general/FM_F4_M_MetaIndexed',
       indicators: 'https://doi.org/10.25504/FAIRsharing.0c0d21',
       type: 'http://edamontology.org/operation_2428',
@@ -51,6 +51,22 @@ class FAIRTest
     hash = metadata.hash
     graph = metadata.graph
     properties = FAIRChampionHarvester::Core.deep_dive_properties(hash)
+
+    # URLs that may identify the assessed resource. The original implementation
+    # referenced `finalURI` without ever assigning it, which causes a nil.map
+    # failure as soon as a search engine returns results.
+    resolved_uris = if metadata.respond_to?(:finalURI)
+                      metadata.finalURI
+                    elsif metadata.respond_to?(:final_uri)
+                      metadata.final_uri
+                    elsif metadata.respond_to?(:uri)
+                      metadata.uri
+                    end
+
+    target_uris = (Array(resolved_uris) + [guid]).compact
+      .map { |value| value.to_s.strip.downcase }
+      .reject(&:empty?)
+      .uniq
     #############################################################################################################
     #############################################################################################################
     #############################################################################################################
@@ -74,27 +90,27 @@ class FAIRTest
     end
 
     if title =~ /\w+/
-      output.comments << "INFO: found title #{title}.  Searching Bing\n"
-      warn "Calling Bing with title #{title}\n\n"
+      output.comments << "INFO: found title #{title}.  Searching SearXNG\n"
+      warn "Calling SearXNG with title #{title}\n\n"
 
-      searchresults = callBing(title, output)
+      searchresults = callSearxng(title, output)
       h = JSON.parse(searchresults)
-      if h['webPages']
-        output.comments << "INFO: found matches in Bing.  Checking for results that match any of #{finalURI.map do |b|
+      if h['results']&.any?
+        output.comments << "INFO: found matches in SearXNG.  Checking for results that match any of #{target_uris.map do |b|
           b.to_s
         end}.\n"
-        finalURI = finalURI.map { |b| b.downcase } # make case insensitive search
-        h['webPages']['value'].each do |p|
-          if finalURI.include?(p['url'].downcase) # compare to the final URI from the Utils::fetch routine (the page of metadata)
-            output.comments << "SUCCESS: found a search record referencing #{p['url']} based on an exact-match title search against Bing.\n  "
+        finalURI = target_uris.map { |b| b.downcase } # make case insensitive search
+        h['results'].each do |p|
+          if p['url'] && target_uris.include?(p['url'].to_s.downcase) # compare to the final URI from the Utils::fetch routine (the page of metadata)
+            output.comments << "SUCCESS: found a search record referencing #{p['url']} based on an exact-match title search against SearXNG.\n  "
             output.score = 'pass'
           end
         end
         unless output.score == 'pass'
-          output.comments << "INFO: No results from Bing included any of #{finalURI.map { |b| b.to_s }}.\n"
+          output.comments << "INFO: No results from SearXNG included any of #{target_uris.map { |b| b.to_s }}.\n"
         end
       else
-        output.comments << "WARN:  Bing search for #{title} found no results.\n"
+        output.comments << "WARN:  SearXNG search for #{title} found no results.\n"
       end
     end
 
@@ -117,29 +133,29 @@ class FAIRTest
     end
 
     if keywords =~ /\w+/
-      output.comments << "INFO: found keywords #{keywords}.  Now searching Bing.\n"
-      warn "Calling Bing with hash keywords #{keywords}\n\n"
+      output.comments << "INFO: found keywords #{keywords}.  Now searching SearXNG.\n"
+      warn "Calling SearXNG with hash keywords #{keywords}\n\n"
 
-      searchresults = callBing(keywords, output)
+      searchresults = callSearxng(keywords, output)
       h = JSON.parse(searchresults)
-      if h['webPages']
-        output.comments << "INFO: found matches in Bing.  Checking for results that match any of #{finalURI.map do |b|
+      if h['results']&.any?
+        output.comments << "INFO: found matches in SearXNG.  Checking for results that match any of #{target_uris.map do |b|
           b.to_s
         end}\n"
-        finalURI = finalURI.map { |b| b.downcase } # make case insensitive search
-        h['webPages']['value'].each do |p|
-          if finalURI.include?(p['url'].downcase) # compare to the final URI from the Utils::fetch routine (the page of metadata)
-            output.comments << "SUCCESS: found a search hit matching #{p['url']} using metadata keywords in search on Bing.\n  "
+        finalURI = target_uris.map { |b| b.downcase } # make case insensitive search
+        h['results'].each do |p|
+          if p['url'] && target_uris.include?(p['url'].to_s.downcase) # compare to the final URI from the Utils::fetch routine (the page of metadata)
+            output.comments << "SUCCESS: found a search hit matching #{p['url']} using metadata keywords in search on SearXNG.\n  "
             output.score = 'pass'
           end
         end
         unless output.score == 'pass'
-          output.comments << "INFO: No keyword search results from Bing included any of #{finalURI.map do |b|
+          output.comments << "INFO: No keyword search results from SearXNG included any of #{target_uris.map do |b|
             b.to_s
           end}.\n"
         end
       else
-        output.comments << "INFO: Bing returned no search results for keywords #{keywords}.\n"
+        output.comments << "INFO: SearXNG returned no search results for keywords #{keywords}.\n"
       end
     end
 
@@ -162,28 +178,28 @@ class FAIRTest
           title = res[:o].to_s  # get the title
           output.comments << "INFO: found possible Title:  #{title}.\n "
           # warn "looking for #{title}"
-          output.comments << "INFO: Calling Bing search using #{title}.\n "
-          warn "Calling Bing with graph title #{title}\n\n"
+          output.comments << "INFO: Calling SearXNG search using #{title}.\n "
+          warn "Calling SearXNG with graph title #{title}\n\n"
 
-          searchresults = callBing(title, output) # search bing
+          searchresults = callSearxng(title, output) # search bing
           # warn JSON::pretty_generate(JSON(searchresults))
           h = JSON.parse(searchresults) # parse json
-          if h['webPages'] # are there results
-            output.comments << "INFO: Bing found results for#{title}.  Checking for results that match #{finalURI.map do |b|
+          if h['results']&.any? # are there results
+            output.comments << "INFO: SearXNG found results for#{title}.  Checking for results that match #{target_uris.map do |b|
               b.to_s
             end}.\n"
-            finalURI = finalURI.map { |b| b.downcase } # make case insensitive search
-            h['webPages']['value'].each do |p| # for each matching pge do
-              if finalURI.include?(p['url'].downcase) # compare to the final URI from the Utils::fetch routine (the page of metadata)
-                output.comments << "SUCCESS: found a search record referencing #{p['url']} based on an exact-match title search against Bing.\n  "
+            finalURI = target_uris.map { |b| b.downcase } # make case insensitive search
+            h['results'].each do |p| # for each matching pge do
+              if p['url'] && target_uris.include?(p['url'].to_s.downcase) # compare to the final URI from the Utils::fetch routine (the page of metadata)
+                output.comments << "SUCCESS: found a search record referencing #{p['url']} based on an exact-match title search against SearXNG.\n  "
                 output.score = 'pass'
               end
             end
             unless output.score == 'pass'
-              output.comments << "INFO: No results from Bing included any of #{finalURI.map { |b| b.to_s }}.\n"
+              output.comments << "INFO: No results from SearXNG included any of #{target_uris.map { |b| b.to_s }}.\n"
             end
           else
-            output.comments << "INFO: No search results from Bing using the title of the record\n  "
+            output.comments << "INFO: No search results from SearXNG using the title of the record\n  "
           end
         end
       end
@@ -199,28 +215,28 @@ class FAIRTest
           title = res[:o].to_s  # get the title
           output.comments << "INFO: found possible Title:  #{title}.\n "
           # warn "looking for #{title}"
-          output.comments << "INFO: Calling Bing search using #{title}.\n "
-          warn "Calling Bing with graph name #{title}\n\n"
+          output.comments << "INFO: Calling SearXNG search using #{title}.\n "
+          warn "Calling SearXNG with graph name #{title}\n\n"
 
-          searchresults = callBing(title, output) # search bing
+          searchresults = callSearxng(title, output) # search bing
           # warn JSON::pretty_generate(JSON(searchresults))
           h = JSON.parse(searchresults) # parse json
-          if h['webPages'] # are there results
-            output.comments << "INFO: Bing found results for#{title}.  Checking for results that match #{finalURI.map do |b|
+          if h['results']&.any? # are there results
+            output.comments << "INFO: SearXNG found results for#{title}.  Checking for results that match #{target_uris.map do |b|
               b.to_s
             end}.\n"
-            finalURI = finalURI.map { |b| b.downcase } # make case insensitive search
-            h['webPages']['value'].each do |p| # for each matching pge do
-              if finalURI.include?(p['url'].downcase) # compare to the final URI from the Utils::fetch routine (the page of metadata)
-                output.comments << "SUCCESS: found a search record referencing #{p['url']} based on an exact-match title search against Bing.\n  "
+            finalURI = target_uris.map { |b| b.downcase } # make case insensitive search
+            h['results'].each do |p| # for each matching pge do
+              if p['url'] && target_uris.include?(p['url'].to_s.downcase) # compare to the final URI from the Utils::fetch routine (the page of metadata)
+                output.comments << "SUCCESS: found a search record referencing #{p['url']} based on an exact-match title search against SearXNG.\n  "
                 output.score = 'pass'
               end
             end
             unless output.score == 'pass'
-              output.comments << "INFO: No results from Bing included any of #{finalURI.map { |b| b.to_s }}.\n"
+              output.comments << "INFO: No results from SearXNG included any of #{target_uris.map { |b| b.to_s }}.\n"
             end
           else
-            output.comments << "INFO: No search results from Bing\n  "
+            output.comments << "INFO: No search results from SearXNG\n  "
           end
         end
       end
@@ -243,84 +259,107 @@ class FAIRTest
           keywords = res[:o].to_s # get the keywords
           output.comments << "INFO: found keywords.\n "
           output.comments << "INFO: found keywords #{keywords}.\n "
-          output.comments << "INFO: Calling Bing search using #{keywords}.\n "
-          warn "Calling Bing with graph keywords #{keywords}\n\n"
+          output.comments << "INFO: Calling SearXNG search using #{keywords}.\n "
+          warn "Calling SearXNG with graph keywords #{keywords}\n\n"
 
-          searchresults = callBing(keywords, output) # search bing
+          searchresults = callSearxng(keywords, output) # search bing
           # warn "keywords #{keywords}"
           # warn "results: #{searchresults}"
           h = {}
           begin
             h = JSON.parse(searchresults) # parse json
           rescue StandardError
-            warn 'whatever came back from Bing was not parsable JSON'
-            output.comments << "INFO: Bing returned a non-JSON response, indicating that the request failed for some reason\n"
+            warn 'whatever came back from SearXNG was not parsable JSON'
+            output.comments << "INFO: SearXNG returned a non-JSON response, indicating that the request failed for some reason\n"
           end
 
-          if h['webPages'] # are there results
-            output.comments << "INFO: Bing found matches using #{keywords}. Testing matches for a reference to #{finalURI.map do |b|
+          if h['results']&.any? # are there results
+            output.comments << "INFO: SearXNG found matches using #{keywords}. Testing matches for a reference to #{target_uris.map do |b|
               b.to_s
             end}\n"
-            finalURI = finalURI.map { |b| b.downcase } # make case insensitive search
-            h['webPages']['value'].each do |p| # for each matching pge do
-              if finalURI.include?(p['url'].downcase) # compare to the final URI from the Utils::fetch routine (the page of metadata)
-                output.comments << "SUCCESS: found a search record referencing #{p['url']} based on a keyword search against Bing.\n  "
+            finalURI = target_uris.map { |b| b.downcase } # make case insensitive search
+            h['results'].each do |p| # for each matching pge do
+              if p['url'] && target_uris.include?(p['url'].to_s.downcase) # compare to the final URI from the Utils::fetch routine (the page of metadata)
+                output.comments << "SUCCESS: found a search record referencing #{p['url']} based on a keyword search against SearXNG.\n  "
                 output.score = 'pass'
               end
             end
             unless output.score == 'pass'
-              output.comments << "INFO: No results from Bing included any of #{finalURI.map { |b| b.to_s }}.\n"
+              output.comments << "INFO: No results from SearXNG included any of #{target_uris.map { |b| b.to_s }}.\n"
             end
           else
-            output.comments << "INFO: No results from Bing using keywords #{keywords}.\n"
+            output.comments << "INFO: No results from SearXNG using keywords #{keywords}.\n"
           end
         end
       end
     end
 
     unless output.score == 'pass'
-      output.comments << "FAILURE: Was unable to discover the metadata record by search in Bing using any method\n"
+      output.comments << "FAILURE: Was unable to discover the metadata record by search in SearXNG using any method\n"
     end
 
     output.createEvaluationResponse
   end
 
-  def self.callBing(phrase, output)
-    warn "Calling Bing with phrase #{phrase}\n\n"
-    phrase = phrase.dup if phrase.frozen?
-    phrase.gsub!(%r{https?://[^,]+}, '') # need to eliminate URLs that appear as keywords
-    uri = 'https://api.cognitive.microsoft.com'
-    path = '/bing/v7.0/search'
+  def self.callSearxng(phrase, output)
+    warn "Calling SearXNG with phrase #{phrase}\n\n"
 
-    accesskey = ENV['BING_API'] || 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+    phrase = phrase.to_s.dup
+    phrase.gsub!(%r{https?://[^,]+}, '') # eliminate URLs that appear as keywords
+    phrase = phrase.strip
 
-    if accesskey.length != 32
-      warn 'Invalid Bing Search API subscription key!'
-      warn 'Please add this to your environment.'
-      abort
-    end
-    if accesskey == 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
-      output.comments << "WARN: The Bing API access key  was not set.  This test will surely fail.\n"
-    end
-    #	escapedphrase = Addressable::URI.encode(phrase)
-    escapedphrase = CGI.escape(phrase)
-    if escapedphrase.length > 1500
-      escapedphrase = escapedphrase[0..1500] # microsoft suggested maximum query length
-      match = escapedphrase.match(/(.*)(%.*)/) # trim off any partially escaped things at the end
-      escapedphrase = match[1] if match[1]
+    if phrase.empty?
+      output.comments << "WARN: SearXNG query was empty after removing URLs.\n"
+      return JSON.generate('results' => [])
     end
 
-    uri = URI(uri + path + "?q=#{escapedphrase}&count=50")
-    # warn "HTTP URI: #{uri}"
+    endpoint = ENV.fetch('SEARXNG_URL', 'http://searxng:8080/search')
+    uri = URI(endpoint)
+
+    params = URI.decode_www_form(uri.query || '')
+    params << ['q', phrase[0, 1500]]
+    params << ['format', 'json']
+    uri.query = URI.encode_www_form(params)
 
     request = Net::HTTP::Get.new(uri)
-    request['Ocp-Apim-Subscription-Key'] = accesskey
+    request['Accept'] = 'application/json'
+    client_ip = ENV.fetch('SEARXNG_CLIENT_IP', '127.0.0.1')
+    request['X-Forwarded-For'] = client_ip
+    request['X-Real-IP'] = client_ip
 
-    response = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == 'https') do |http|
+    response = Net::HTTP.start(
+      uri.host,
+      uri.port,
+      use_ssl: uri.scheme == 'https',
+      open_timeout: ENV.fetch('SEARXNG_OPEN_TIMEOUT', '5').to_i,
+      read_timeout: ENV.fetch('SEARXNG_READ_TIMEOUT', '20').to_i
+    ) do |http|
       http.request(request)
     end
-    # warn "HTTP response: #{response.inspect}"
+
+    unless response.is_a?(Net::HTTPSuccess)
+      message = "SearXNG returned HTTP #{response.code}: #{response.message}"
+      output.comments << "ERROR: #{message}.\n"
+      raise message
+    end
+
+    begin
+      parsed = JSON.parse(response.body)
+    rescue JSON::ParserError => e
+      output.comments << "ERROR: SearXNG returned invalid JSON: #{e.message}.\n"
+      raise
+    end
+
+    unless parsed['results'].is_a?(Array)
+      message = 'SearXNG JSON response does not contain a results array'
+      output.comments << "ERROR: #{message}.\n"
+      raise message
+    end
+
     response.body
+  rescue URI::InvalidURIError, SocketError, SystemCallError, Timeout::Error => e
+    output.comments << "ERROR: SearXNG request failed: #{e.message}.\n"
+    raise
   end
 
   def self.fc_searchable_api
