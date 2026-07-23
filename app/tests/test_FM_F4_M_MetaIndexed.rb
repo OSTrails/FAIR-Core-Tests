@@ -1,14 +1,24 @@
+# Raised by callSearxngMetaIndexed when the SearXNG backend itself is unreachable
+# or misbehaving (network failure, non-2xx response, unparseable/malformed JSON).
+# Callers rescue this specifically so a SearXNG outage produces an
+# 'indeterminate' test result instead of an unhandled 500.
+#
+# Deliberately independent of fc_searchable's own SearXNG client and error
+# class: fc_searchable is expected to be deprecated, and this test should
+# keep working unchanged when that happens.
+class MetaIndexedSearxngError < StandardError; end
+
 class FAIRTest
   def self.test_FM_F4_M_MetaIndexed_meta
     {
-      testversion: HARVESTER_VERSION + ':' + 'Tst-3.0.0',
+      testversion: HARVESTER_VERSION + ':' + 'Tst-4.0.0',
       testname: 'OSTrails Core: Searchable in major search engine',
       testid: 'test_FM_F4_M_MetaIndexed',
       description: "Tests whether a machine is able to discover the
-      resource by search, using Microsoft Bing.  The process is to first
+      resource by search, using a SearXNG metasearch service.  The process is to first
       identify the title of the resource in the metadata, then search for
-      that title in Bing, and then check whether any of the results from
-      Bing include a reference to the resource.  This test is designed to
+      that title using SearXNG, and then check whether any of the results from
+      SearXNG include a reference to the resource.  This test is designed to
       check whether the metadata is indexed in a major search engine, which
       is an important aspect of findability.  The test will also check for
       keywords in the metadata and use those as search terms as well.  The properties
@@ -63,11 +73,23 @@ class FAIRTest
 
     hash = metadata.hash
     graph = metadata.graph
-    # properties = FAIRChampionHarvester::Core.deep_dive_properties(hash)
-    # #############################################################################################################
-    #############################################################################################################
-    #############################################################################################################
-    #############################################################################################################
+
+    # URLs that may identify the assessed resource, used to check whether a
+    # search result actually points back at the tested record.
+    resolved_uris = if metadata.respond_to?(:finalURI)
+                      metadata.finalURI
+                    elsif metadata.respond_to?(:final_uri)
+                      metadata.final_uri
+                    elsif metadata.respond_to?(:uri)
+                      metadata.uri
+                    end
+
+    target_uris = (Array(resolved_uris) + [guid]).compact
+      .map { |value| value.to_s.strip.downcase }
+      .reject(&:empty?)
+      .uniq
+
+    begin
     ###################  TITLE
     output.comments << "INFO: testing any linked data metadata for a key matching 'title' in any case.\n"
 
@@ -124,27 +146,26 @@ ORDER BY ?subject ?titleProperty")
     end
 
     titles.each do |title|
-      output.comments << "INFO: found title #{title}.  Searching Bing\n"
-      warn "Calling Bing with title #{title}\n\n"
+      output.comments << "INFO: found title #{title}.  Searching SearXNG\n"
+      warn "Calling SearXNG with title #{title}\n\n"
 
-      searchresults = callBing2(title, output)
+      searchresults = callSearxngMetaIndexed(title, output)
       h = JSON.parse(searchresults)
-      if h['webPages']
-        output.comments << "INFO: found matches in Bing.  Checking for results that match any of #{finalURI.map do |b|
+      if h['results']&.any?
+        output.comments << "INFO: found matches in SearXNG.  Checking for results that match any of #{target_uris.map do |b|
           b.to_s
         end}.\n"
-        finalURI = finalURI.map { |b| b.downcase } # make case insensitive search
-        h['webPages']['value'].each do |p|
-          if finalURI.include?(p['url'].downcase) # compare to the final URI from the Utils::fetch routine (the page of metadata)
-            output.comments << "SUCCESS: found a search record referencing #{p['url']} based on an exact-match title search against Bing.\n  "
+        h['results'].each do |p|
+          if p['url'] && target_uris.include?(p['url'].to_s.downcase) # compare to the final URI from the Utils::fetch routine (the page of metadata)
+            output.comments << "SUCCESS: found a search record referencing #{p['url']} based on an exact-match title search against SearXNG.\n  "
             output.score = 'pass'
           end
         end
         unless output.score == 'pass'
-          output.comments << "INFO: No results from Bing included any of #{finalURI.map { |b| b.to_s }}.\n"
+          output.comments << "INFO: No results from SearXNG included any of #{target_uris.map { |b| b.to_s }}.\n"
         end
       else
-        output.comments << "WARN:  Bing search for #{title} found no results.\n"
+        output.comments << "WARN:  SearXNG search for #{title} found no results.\n"
       end
     end
 
@@ -224,76 +245,119 @@ ORDER BY ?subject ?keywordProperty")
     end
 
     if keywords =~ /\w+/
-      output.comments << "INFO: found keywords #{keywords}.  Now searching Bing.\n"
-      warn "Calling Bing with keywords #{keywords}\n\n"
+      output.comments << "INFO: found keywords #{keywords}.  Now searching SearXNG.\n"
+      warn "Calling SearXNG with keywords #{keywords}\n\n"
 
-      searchresults = callBing2(keywords, output) # search bing
+      searchresults = callSearxngMetaIndexed(keywords, output) # search searxng
       h = JSON.parse(searchresults)
-      if h['webPages']
-        output.comments << "INFO: found matches in Bing.  Checking for results that match any of #{finalURI.map do |b|
+      if h['results']&.any?
+        output.comments << "INFO: found matches in SearXNG.  Checking for results that match any of #{target_uris.map do |b|
           b.to_s
         end}\n"
-        finalURI = finalURI.map { |b| b.downcase } # make case insensitive search
-        h['webPages']['value'].each do |p|
-          if finalURI.include?(p['url'].downcase) # compare to the final URI from the Utils::fetch routine (the page of metadata)
-            output.comments << "SUCCESS: found a search hit matching #{p['url']} using metadata keywords in search on Bing.\n  "
+        h['results'].each do |p|
+          if p['url'] && target_uris.include?(p['url'].to_s.downcase) # compare to the final URI from the Utils::fetch routine (the page of metadata)
+            output.comments << "SUCCESS: found a search hit matching #{p['url']} using metadata keywords in search on SearXNG.\n  "
             output.score = 'pass'
           end
         end
         unless output.score == 'pass'
-          output.comments << "INFO: No keyword search results from Bing included any of #{finalURI.map do |b|
+          output.comments << "INFO: No keyword search results from SearXNG included any of #{target_uris.map do |b|
             b.to_s
           end}.\n"
         end
       else
-        output.comments << "INFO: Bing returned no search results for keywords #{keywords}.\n"
+        output.comments << "INFO: SearXNG returned no search results for keywords #{keywords}.\n"
       end
     end
 
     unless output.score == 'pass'
       output.score = 'fail'
-      output.comments << "FAILURE: Was unable to discover the metadata record by search in Bing using any method\n"
+      output.comments << "FAILURE: Was unable to discover the metadata record by search in SearXNG using any method\n"
+    end
+    rescue MetaIndexedSearxngError => e
+      output.score = 'indeterminate'
+      output.comments << "INDETERMINATE: SearXNG search could not be completed: #{e.message}.\n"
     end
 
     output.createEvaluationResponse
   end
 
-  def self.callBing2(phrase, output)
-    warn "Calling Bing with phrase #{phrase}\n\n"
-    phrase = phrase.dup if phrase.frozen?
-    phrase.gsub!(%r{https?://[^,]+}, '') # need to eliminate URLs that appear as keywords
-    uri = 'https://api.cognitive.microsoft.com'
-    path = '/bing/v7.0/search'
+  # Queries a SearXNG metasearch instance (self-hosted, see docker-compose.searxng.yml)
+  # in place of the old paid Bing Web Search API. SEARXNG_URL defaults to the
+  # in-network container name 'searxng' and should always point at a private/
+  # self-hosted instance: pointing it at a public SearXNG instance would leak
+  # resource metadata to a third party and risk that instance banning our IP
+  # for automated traffic.
+  #
+  # Intentionally a standalone copy of fc_searchable's callSearxngFcSearchable
+  # rather than a shared helper: fc_searchable is expected to be deprecated,
+  # and this test should keep working unchanged when that happens.
+  def self.callSearxngMetaIndexed(phrase, output)
+    warn "Calling SearXNG with phrase #{phrase}\n\n"
 
-    accesskey = ENV['BING_API'] || 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+    phrase = phrase.to_s.dup
+    phrase.gsub!(%r{https?://[^,]+}, '') # eliminate URLs that appear as keywords
+    phrase = phrase.strip
 
-    if accesskey.length != 32
-      warn 'Invalid Bing Search API subscription key!'
-      warn 'Please add this to your environment.'
-      abort
-    end
-    if accesskey == 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
-      output.comments << "WARN: The Bing API access key  was not set.  This test will surely fail.\n"
-    end
-    #	escapedphrase = Addressable::URI.encode(phrase)
-    escapedphrase = CGI.escape(phrase)
-    if escapedphrase.length > 1500
-      escapedphrase = escapedphrase[0..1500] # microsoft suggested maximum query length
-      match = escapedphrase.match(/(.*)(%.*)/) # trim off any partially escaped things at the end
-      escapedphrase = match[1] if match[1]
+    if phrase.empty?
+      output.comments << "WARN: SearXNG query was empty after removing URLs.\n"
+      return JSON.generate('results' => [])
     end
 
-    uri = URI(uri + path + "?q=#{escapedphrase}&count=50")
-    # warn "HTTP URI: #{uri}"
+    endpoint = ENV.fetch('SEARXNG_URL', 'http://searxng:8080/search')
+    uri = URI(endpoint)
+
+    params = URI.decode_www_form(uri.query || '')
+    params << ['q', phrase[0, 1500]]
+    params << ['format', 'json'] # requires `search.formats: [html, json]` in searxng-config/settings.yml
+
+    uri.query = URI.encode_www_form(params)
 
     request = Net::HTTP::Get.new(uri)
-    request['Ocp-Apim-Subscription-Key'] = accesskey
+    request['Accept'] = 'application/json'
+    # SearXNG's bot/rate limiter keys off client IP; spoofing it to a fixed trusted
+    # IP is harmless here only because searxng-config/settings.yml has `limiter: false`.
+    # If the limiter is ever turned on, this stops being a no-op and starts being a
+    # rate-limit bypass -- worth revisiting together at that point.
+    client_ip = ENV.fetch('SEARXNG_CLIENT_IP', '127.0.0.1')
+    request['X-Forwarded-For'] = client_ip
+    request['X-Real-IP'] = client_ip
 
-    response = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == 'https') do |http|
+    response = Net::HTTP.start(
+      uri.host,
+      uri.port,
+      use_ssl: uri.scheme == 'https',
+      open_timeout: ENV.fetch('SEARXNG_OPEN_TIMEOUT', '5').to_i,
+      read_timeout: ENV.fetch('SEARXNG_READ_TIMEOUT', '20').to_i
+    ) do |http|
       http.request(request)
     end
-    # warn "HTTP response: #{response.inspect}"
+
+    unless response.is_a?(Net::HTTPSuccess)
+      message = "SearXNG returned HTTP #{response.code}: #{response.message}"
+      output.comments << "ERROR: #{message}.\n"
+      raise MetaIndexedSearxngError, message
+    end
+
+    begin
+      parsed = JSON.parse(response.body)
+    rescue JSON::ParserError => e
+      message = "SearXNG returned invalid JSON: #{e.message}"
+      output.comments << "ERROR: #{message}.\n"
+      raise MetaIndexedSearxngError, message
+    end
+
+    unless parsed['results'].is_a?(Array)
+      message = 'SearXNG JSON response does not contain a results array'
+      output.comments << "ERROR: #{message}.\n"
+      raise MetaIndexedSearxngError, message
+    end
+
     response.body
+  rescue URI::InvalidURIError, SocketError, SystemCallError, Timeout::Error => e
+    message = "SearXNG request failed: #{e.message}"
+    output.comments << "ERROR: #{message}.\n"
+    raise MetaIndexedSearxngError, message
   end
 
   def self.test_FM_F4_M_MetaIndexed_api

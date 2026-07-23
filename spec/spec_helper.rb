@@ -19,7 +19,6 @@ ENV['TEST_PROTOCOL'] = 'http'
 ENV['TEST_HOST'] = 'localhost:8282'
 ENV['TEST_PATH'] = '/tests/'
 ENV['FAIRSHARING_KEY'] = 'dummy-fairsharing-key'
-ENV['BING_API'] = 'test_bing_api_key'
 
 require File.expand_path('../app/controllers/application_controller', __dir__)
 

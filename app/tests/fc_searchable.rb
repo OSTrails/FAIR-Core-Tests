@@ -1,7 +1,17 @@
+# Raised by callSearxngFcSearchable when the SearXNG backend itself is unreachable
+# or misbehaving (network failure, non-2xx response, unparseable/malformed JSON).
+# Callers rescue this specifically so a SearXNG outage produces an
+# 'indeterminate' test result instead of an unhandled 500.
+#
+# Deliberately kept separate from test_FM_F4_M_MetaIndexed's own SearXNG client
+# and error class: fc_searchable is expected to be deprecated, and the two
+# should not share code that would break FM_F4 when fc_searchable is removed.
+class FcSearchableSearxngError < StandardError; end
+
 class FAIRTest
   def self.fc_searchable_meta
     {
-      testversion: HARVESTER_VERSION + ':' + 'Tst-2.0.0',
+      testversion: HARVESTER_VERSION + ':' + 'Tst-3.0.0',
       testname: 'OSTrails Core: Searchable in major search engine',
       testid: 'fc_searchable',
       description: 'Tests whether a machine is able to discover the resource using a SearXNG metasearch service.',
@@ -67,10 +77,8 @@ class FAIRTest
       .map { |value| value.to_s.strip.downcase }
       .reject(&:empty?)
       .uniq
-    #############################################################################################################
-    #############################################################################################################
-    #############################################################################################################
-    #############################################################################################################
+
+    begin
     ###################  TITLE
     output.comments << "INFO: testing any hash-style metadata for a key matching 'title' in any case.\n"
     flatlist = hash.flatten(40) # hopefully no hash is more than 40 deep!
@@ -93,13 +101,12 @@ class FAIRTest
       output.comments << "INFO: found title #{title}.  Searching SearXNG\n"
       warn "Calling SearXNG with title #{title}\n\n"
 
-      searchresults = callSearxng(title, output)
+      searchresults = callSearxngFcSearchable(title, output)
       h = JSON.parse(searchresults)
       if h['results']&.any?
         output.comments << "INFO: found matches in SearXNG.  Checking for results that match any of #{target_uris.map do |b|
           b.to_s
         end}.\n"
-        finalURI = target_uris.map { |b| b.downcase } # make case insensitive search
         h['results'].each do |p|
           if p['url'] && target_uris.include?(p['url'].to_s.downcase) # compare to the final URI from the Utils::fetch routine (the page of metadata)
             output.comments << "SUCCESS: found a search record referencing #{p['url']} based on an exact-match title search against SearXNG.\n  "
@@ -136,13 +143,12 @@ class FAIRTest
       output.comments << "INFO: found keywords #{keywords}.  Now searching SearXNG.\n"
       warn "Calling SearXNG with hash keywords #{keywords}\n\n"
 
-      searchresults = callSearxng(keywords, output)
+      searchresults = callSearxngFcSearchable(keywords, output)
       h = JSON.parse(searchresults)
       if h['results']&.any?
         output.comments << "INFO: found matches in SearXNG.  Checking for results that match any of #{target_uris.map do |b|
           b.to_s
         end}\n"
-        finalURI = target_uris.map { |b| b.downcase } # make case insensitive search
         h['results'].each do |p|
           if p['url'] && target_uris.include?(p['url'].to_s.downcase) # compare to the final URI from the Utils::fetch routine (the page of metadata)
             output.comments << "SUCCESS: found a search hit matching #{p['url']} using metadata keywords in search on SearXNG.\n  "
@@ -181,14 +187,13 @@ class FAIRTest
           output.comments << "INFO: Calling SearXNG search using #{title}.\n "
           warn "Calling SearXNG with graph title #{title}\n\n"
 
-          searchresults = callSearxng(title, output) # search bing
+          searchresults = callSearxngFcSearchable(title, output) # search searxng
           # warn JSON::pretty_generate(JSON(searchresults))
           h = JSON.parse(searchresults) # parse json
           if h['results']&.any? # are there results
             output.comments << "INFO: SearXNG found results for#{title}.  Checking for results that match #{target_uris.map do |b|
               b.to_s
             end}.\n"
-            finalURI = target_uris.map { |b| b.downcase } # make case insensitive search
             h['results'].each do |p| # for each matching pge do
               if p['url'] && target_uris.include?(p['url'].to_s.downcase) # compare to the final URI from the Utils::fetch routine (the page of metadata)
                 output.comments << "SUCCESS: found a search record referencing #{p['url']} based on an exact-match title search against SearXNG.\n  "
@@ -218,14 +223,13 @@ class FAIRTest
           output.comments << "INFO: Calling SearXNG search using #{title}.\n "
           warn "Calling SearXNG with graph name #{title}\n\n"
 
-          searchresults = callSearxng(title, output) # search bing
+          searchresults = callSearxngFcSearchable(title, output) # search searxng
           # warn JSON::pretty_generate(JSON(searchresults))
           h = JSON.parse(searchresults) # parse json
           if h['results']&.any? # are there results
             output.comments << "INFO: SearXNG found results for#{title}.  Checking for results that match #{target_uris.map do |b|
               b.to_s
             end}.\n"
-            finalURI = target_uris.map { |b| b.downcase } # make case insensitive search
             h['results'].each do |p| # for each matching pge do
               if p['url'] && target_uris.include?(p['url'].to_s.downcase) # compare to the final URI from the Utils::fetch routine (the page of metadata)
                 output.comments << "SUCCESS: found a search record referencing #{p['url']} based on an exact-match title search against SearXNG.\n  "
@@ -262,22 +266,13 @@ class FAIRTest
           output.comments << "INFO: Calling SearXNG search using #{keywords}.\n "
           warn "Calling SearXNG with graph keywords #{keywords}\n\n"
 
-          searchresults = callSearxng(keywords, output) # search bing
-          # warn "keywords #{keywords}"
-          # warn "results: #{searchresults}"
-          h = {}
-          begin
-            h = JSON.parse(searchresults) # parse json
-          rescue StandardError
-            warn 'whatever came back from SearXNG was not parsable JSON'
-            output.comments << "INFO: SearXNG returned a non-JSON response, indicating that the request failed for some reason\n"
-          end
+          searchresults = callSearxngFcSearchable(keywords, output) # search searxng
+          h = JSON.parse(searchresults) # parse json; malformed/non-JSON responses raise FcSearchableSearxngError from callSearxngFcSearchable
 
           if h['results']&.any? # are there results
             output.comments << "INFO: SearXNG found matches using #{keywords}. Testing matches for a reference to #{target_uris.map do |b|
               b.to_s
             end}\n"
-            finalURI = target_uris.map { |b| b.downcase } # make case insensitive search
             h['results'].each do |p| # for each matching pge do
               if p['url'] && target_uris.include?(p['url'].to_s.downcase) # compare to the final URI from the Utils::fetch routine (the page of metadata)
                 output.comments << "SUCCESS: found a search record referencing #{p['url']} based on a keyword search against SearXNG.\n  "
@@ -297,11 +292,22 @@ class FAIRTest
     unless output.score == 'pass'
       output.comments << "FAILURE: Was unable to discover the metadata record by search in SearXNG using any method\n"
     end
+    rescue FcSearchableSearxngError => e
+      output.score = 'indeterminate'
+      output.comments << "INDETERMINATE: SearXNG search could not be completed: #{e.message}.\n"
+    end
 
     output.createEvaluationResponse
   end
 
-  def self.callSearxng(phrase, output)
+  # Queries a SearXNG metasearch instance (self-hosted, see docker-compose.searxng.yml)
+  # in place of the old paid Bing Web Search API. SEARXNG_URL defaults to the
+  # in-network container name 'searxng' and should always point at a private/
+  # self-hosted instance: this method fires several queries per test run (one per
+  # discovered title/keyword/name), and pointing it at a public SearXNG instance
+  # would leak resource metadata to a third party and risk that instance banning
+  # our IP for automated traffic.
+  def self.callSearxngFcSearchable(phrase, output)
     warn "Calling SearXNG with phrase #{phrase}\n\n"
 
     phrase = phrase.to_s.dup
@@ -318,11 +324,16 @@ class FAIRTest
 
     params = URI.decode_www_form(uri.query || '')
     params << ['q', phrase[0, 1500]]
-    params << ['format', 'json']
+    params << ['format', 'json'] # requires `search.formats: [html, json]` in searxng-config/settings.yml
+
     uri.query = URI.encode_www_form(params)
 
     request = Net::HTTP::Get.new(uri)
     request['Accept'] = 'application/json'
+    # SearXNG's bot/rate limiter keys off client IP; spoofing it to a fixed trusted
+    # IP is harmless here only because searxng-config/settings.yml has `limiter: false`.
+    # If the limiter is ever turned on, this stops being a no-op and starts being a
+    # rate-limit bypass -- worth revisiting together at that point.
     client_ip = ENV.fetch('SEARXNG_CLIENT_IP', '127.0.0.1')
     request['X-Forwarded-For'] = client_ip
     request['X-Real-IP'] = client_ip
@@ -340,26 +351,28 @@ class FAIRTest
     unless response.is_a?(Net::HTTPSuccess)
       message = "SearXNG returned HTTP #{response.code}: #{response.message}"
       output.comments << "ERROR: #{message}.\n"
-      raise message
+      raise FcSearchableSearxngError, message
     end
 
     begin
       parsed = JSON.parse(response.body)
     rescue JSON::ParserError => e
-      output.comments << "ERROR: SearXNG returned invalid JSON: #{e.message}.\n"
-      raise
+      message = "SearXNG returned invalid JSON: #{e.message}"
+      output.comments << "ERROR: #{message}.\n"
+      raise FcSearchableSearxngError, message
     end
 
     unless parsed['results'].is_a?(Array)
       message = 'SearXNG JSON response does not contain a results array'
       output.comments << "ERROR: #{message}.\n"
-      raise message
+      raise FcSearchableSearxngError, message
     end
 
     response.body
   rescue URI::InvalidURIError, SocketError, SystemCallError, Timeout::Error => e
-    output.comments << "ERROR: SearXNG request failed: #{e.message}.\n"
-    raise
+    message = "SearXNG request failed: #{e.message}"
+    output.comments << "ERROR: #{message}.\n"
+    raise FcSearchableSearxngError, message
   end
 
   def self.fc_searchable_api

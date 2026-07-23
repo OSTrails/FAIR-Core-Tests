@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.0] - 2026-07-23
+
+### Changed
+
+- `fc_searchable` and `test_FM_F4_M_MetaIndexed` now query a self-hosted SearXNG metasearch instance instead of the paid Microsoft Bing Web Search API, removing per-query billing and the `BING_API` key requirement. `docker-compose.yml` now runs a `searxng` service alongside `tests`.
+- Both tests now build the list of candidate resource URIs (`target_uris`) once from the harvested metadata plus the tested GUID, fixing a latent bug where an unassigned `finalURI` local variable would raise `NoMethodError` as soon as a search engine returned results.
+- SearXNG request failures (unreachable service, non-2xx response, unparseable JSON) are now raised as `SearxngError` and caught around the whole search flow, so a backend outage now yields an `indeterminate` result instead of an unhandled 500.
+
+### Removed
+
+- The `BING_API` environment variable and the Bing-calling code paths (`callBing`/`callBing2`) are gone; `BING_API` is no longer read anywhere.
+
 ## [0.3.6] - 2026-06-30
 
 ### Changed

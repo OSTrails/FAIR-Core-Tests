@@ -1,8 +1,8 @@
 version: "3"
 services:
 
-  tests: 
-    image: markw/fair-core-tests:0.3.6
+  tests:
+    image: markw/fair-core-tests:0.4.0
     container_name: tests
     environment:
       TEST_PROTOCOL: http
@@ -10,12 +10,38 @@ services:
       TEST_HOST: "localhost:8282" # from the perspective of the evaluator container
       TEST_PATH: /tests/     # becomes http://tests:8080/tests/test_name_here
       FAIRSHARING_KEY: your_fairsharing_key_here
-      BING_API: your_bing_api_key_here
+      SEARXNG_URL: http://searxng:8080/search
+      SEARXNG_OPEN_TIMEOUT: "5"
+      SEARXNG_READ_TIMEOUT: "20"
     ports:
       - "8282:8282"
+    depends_on:
+      - searxng
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  searxng:
+    image: searxng/searxng:latest
+    container_name: searxng
+    restart: always
+    volumes:
+      - ./searxng-config/settings.yml:/etc/searxng/settings.yml:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   tika:
     image: apache/tika:3.3.0.0
     container_name: evaluator-tika
     restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
